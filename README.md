@@ -525,14 +525,6 @@ By running this demo, you'll see:
 5. **Privacy Verification** - How to verify payments are private
 6. **On-Chain Execution** - Real blockchain transactions
 
-## 🤝 Contributing
-
-This is a demo repository. For issues or improvements:
-
-1. Open an issue on GitHub
-2. Describe the problem or enhancement
-3. Include steps to reproduce (if applicable)
-
 ## 📄 License
 
 See LICENSE file in the repository.
