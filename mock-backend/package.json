@@ -1,0 +1,31 @@
+{
+  "name": "mock-backend",
+  "version": "0.1.0",
+  "description": "Mock backend",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/server.ts",
+    "start:compiled": "node dist/main.js",
+    "dev": "tsx watch src/server.ts",
+    "fmt": "prettier -w ."
+  },
+  "dependencies": {
+    "@fastify/cors": "11.1.0",
+    "@noble/curves": "1.9.0",
+    "@stablelib/x25519": "^2.0.1",
+    "@stablelib/xchacha20poly1305": "^2.0.1",
+    "bermuda-bay-sdk": "file:../ui/lib/sdk",
+    "cors": "^2.8.5",
+    "ethers": "^6.15.0",
+    "express": "^4.18.2",
+    "fastify": "5.5.0",
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2"
+  }
+}

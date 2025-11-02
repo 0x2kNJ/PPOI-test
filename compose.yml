@@ -1,0 +1,88 @@
+services:
+  anvil:
+    container_name: anvil
+    image: ghcr.io/foundry-rs/foundry:v1.3.2
+    volumes:
+      - ..:/baanx
+    environment:
+      ANVIL_IP_ADDR: 0.0.0.0 # The --host flag wasn't taking effect - this is.
+    ports:
+      - 8545:8545
+    command: anvil --block-time 2 --port 8545
+
+  deployer:
+    container_name: deployer
+    build:
+      dockerfile: Dockerfile.deployer
+    volumes:
+      - ..:/baanx
+    working_dir: /baanx/demo
+    command: /baanx/demo/scripts/deploy_all.sh
+    depends_on:
+      - anvil
+
+  # Block production stalls after the deployments - usually at block 8.
+  # This service just does a single curl call to restart it.
+  # `cast rpc evm_setIntervalMining 0x2` keeps throwing, therefore raw curl.
+  reanvil:
+    container_name: reanvil
+    image: curlimages/curl:8.15.0
+    command: curl -D - -X POST -H 'content-type:application/json' -d '{"jsonrpc":"2.0","id":1,"method":"evm_setIntervalMining","params":[2]}' http://anvil:8545
+    depends_on:
+      deployer:
+        condition: service_completed_successfully
+
+  relayer:
+    container_name: relayer
+    build:
+      context: ./lib/relayer
+    environment:
+      RPC: http://anvil:8545
+      PRIVATE_KEY: $ANVIL_ZOE_PRIVATE_KEY
+    ports:
+      - 4191:4191
+    depends_on:
+      - anvil
+
+  mock-backend:
+    container_name: mock-backend
+    build:
+      context: ./mock-backend
+      args:
+        GLOBAL_CHECKOUT_TOKEN: ${GLOBAL_CHECKOUT_TOKEN}
+    environment:
+      PORT: 4192
+      RELAYER: http://relayer:4191/relay
+      RPC_URL: http://anvil:8545
+    ports:
+      - 4192:4192
+    depends_on:
+      - anvil
+
+  ui:
+    container_name: ui
+    build:
+      context: ./ui
+    ports:
+      - 4193:80
+      - 4443:443
+    depends_on:
+      - anvil
+
+  otterscan:
+    container_name: otterscan
+    image: otterscan/otterscan:v2.10.0
+    environment:
+      ERIGON_URL: http://localhost:8545
+    ports:
+      - 4194:80
+    depends_on:
+      - anvil
+
+  snap:
+    container_name: snap
+    build:
+      context: ./snap
+      dockerfile: ./packages/snap/Dockerfile
+    ports:
+      - 8080:8080

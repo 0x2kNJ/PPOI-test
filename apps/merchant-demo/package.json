@@ -1,0 +1,27 @@
+{
+  "name": "merchant-demo-x402",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.0",
+    "@stablelib/x25519": "^2.0.1",
+    "@stablelib/xchacha20poly1305": "^2.0.1",
+    "ethers": "^6.15.0",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.0.0"
+  }
+}

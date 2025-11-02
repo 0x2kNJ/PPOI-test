@@ -1,0 +1,27 @@
+{
+  "name": "baanx-demo-ui",
+  "version": "0.0.0",
+  "description": "",
+  "source": "src/index.html",
+  "scripts": {
+    "build": "./node_modules/.bin/vite build",
+    "start": "./node_modules/.bin/vite --strictPort --port 4193",
+    "fmt": "prettier --write '{,!(node_modules)/**/}*.tsx' --config .prettierrc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "prettier": "3.6.2",
+    "vite": "7.0.6"
+  },
+  "dependencies": {
+    "bermuda-bay-sdk": "./lib/sdk",
+    "ethers": "6.15.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-musl": "4.47.1"
+  }
+}
