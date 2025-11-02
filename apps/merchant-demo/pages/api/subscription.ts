@@ -198,6 +198,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Get merchant's shielded commitment from environment (or use public address)
+    const merchantCommitment = process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000";
+    
     // Build permit struct
     const permit = {
       noteId: sub.noteId,
@@ -206,7 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expiry: sub.expiry,
       nonce: sub.nonce,
       signature: sub.permitSignature,
-      merchantCommitment: "0x0000000000000000000000000000000000000000000000000000000000000000", // 0x0 = public address
+      merchantCommitment: merchantCommitment as `0x${string}`, // Shielded address if configured, else public
     };
 
     // Build contract call arguments: [proof, publicInputs, permit, recipient, amount]

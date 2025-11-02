@@ -217,13 +217,16 @@ export default function HTTP402FullDemo() {
         ],
       };
 
+      // Get merchant's shielded commitment from environment (or use public address)
+      const merchantCommitment = process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000";
+      
       const signature = await signer.signTypedData(domain, types, {
         noteId: noteId,
         merchant: merchantAddress,
         maxAmount: BigInt(maxAmountWei),
         expiry: BigInt(expiry),
         nonce: BigInt(nonce),
-        merchantCommitment: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        merchantCommitment: merchantCommitment as `0x${string}`,
       });
 
       setStatus("✅ Permit signed");
@@ -231,6 +234,8 @@ export default function HTTP402FullDemo() {
       // Execute payment via relayer
       setStatus("🚀 Executing payment transaction...");
 
+      const merchantCommitment = process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000";
+      
       const permit = {
         noteId: noteId,
         merchant: merchantAddress,
@@ -238,7 +243,7 @@ export default function HTTP402FullDemo() {
         expiry: expiry,
         nonce: nonce,
         signature: signature,
-        merchantCommitment: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        merchantCommitment: merchantCommitment as `0x${string}`,
       };
 
       const firstPrecompute = precomputesData.precomputes[0];

@@ -393,7 +393,7 @@ export default function X402SubscriptionsDemo() {
         maxAmount: maxAmountWei,
         expiry: BigInt(expiry),
         nonce: BigInt(nonce),
-        merchantCommitment: "0x0000000000000000000000000000000000000000000000000000000000000000", // 0x0 = public address
+        merchantCommitment: (process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000") as `0x${string}`, // Shielded address if configured, else public
       });
 
       setPermitSignature(signature);

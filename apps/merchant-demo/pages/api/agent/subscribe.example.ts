@@ -59,6 +59,9 @@ export default async function handler(
     const noteId = AgentWallet.generateNoteId(agentAddress, nonce || 1);
     console.log(`NoteId: ${noteId}`);
     
+    // Get merchant's shielded commitment from environment (or use public address)
+    const merchantCommitment = process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000";
+    
     // Prepare permit
     const permitData = {
       noteId,
@@ -66,7 +69,7 @@ export default async function handler(
       maxAmount: maxAmount || amount,
       expiry: expiry || Math.floor(Date.now() / 1000) + 3600, // Default 1 hour
       nonce: nonce || 1,
-      merchantCommitment: "0x0000000000000000000000000000000000000000000000000000000000000000",
+      merchantCommitment: merchantCommitment as `0x${string}`, // Shielded address if configured, else public
     };
     
     // Sign permit programmatically (no MetaMask!)
