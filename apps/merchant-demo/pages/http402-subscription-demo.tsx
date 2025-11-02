@@ -251,8 +251,6 @@ export default function HTTP402SubscriptionDemo() {
 
       const ADAPTER_ADDR = process.env.NEXT_PUBLIC_X402_ADAPTER || "";
       
-      const merchantCommitment = process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000";
-      
       const permit = {
         noteId: noteId,
         merchant: merchantAddress,
