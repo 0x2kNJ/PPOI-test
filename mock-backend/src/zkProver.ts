@@ -159,9 +159,18 @@ export async function generateRealProof(witness: PrecomputeWitness): Promise<ZKP
       throw new Error(`Witness file not generated at ${defaultWitnessPath}`);
     }
     
-    // Rename to worker-specific name to avoid conflicts
+    // Copy to worker-specific name to avoid race conditions (multiple workers may be running)
     const fs = await import('fs');
-    fs.renameSync(defaultWitnessPath, witnessPath);
+    fs.copyFileSync(defaultWitnessPath, witnessPath);
+    
+    // Clean up the default witness file only if it's still there
+    try {
+      if (existsSync(defaultWitnessPath)) {
+        fs.unlinkSync(defaultWitnessPath);
+      }
+    } catch (e) {
+      // Ignore if another worker already deleted it
+    }
     
     console.log(`✅ [Worker ${workerId}] Witness generated: ${witnessPath}`);
 
