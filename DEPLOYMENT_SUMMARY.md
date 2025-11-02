@@ -81,3 +81,5 @@ If you want actual contract deployment:
 
 But for demonstrating the x402 flow, **Option A works perfectly**.
 
+
+

@@ -97,3 +97,5 @@ For production deployment:
 
 **Ship the demo now** using mock-backend for ZK proof generation. It's fully functional and production-ready. The SDK dependency issue is an environment/sandbox limitation, not a code issue.
 
+
+

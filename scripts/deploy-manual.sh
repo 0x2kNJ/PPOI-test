@@ -62,3 +62,5 @@ echo ""
 echo "Recommendation: Use Docker compose for full deployment"
 echo "   cd demo && docker compose up -d"
 
+
+

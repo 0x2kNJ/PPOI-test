@@ -20,3 +20,5 @@ The integration code in `zkProver.ts` needs minor updates to use the JS library 
 
 Want me to update the code to use `@aztec/bb.js`?
 
+
+

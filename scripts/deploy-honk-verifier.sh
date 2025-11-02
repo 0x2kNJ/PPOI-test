@@ -30,3 +30,5 @@ echo "PRECOMPUTE_VERIFIER_ADDRESS=$verifier_address"
 echo ""
 echo "Update your deployment script with this address!"
 
+
+

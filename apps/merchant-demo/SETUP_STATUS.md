@@ -109,3 +109,5 @@ Contract calls will fail, but the UI demonstrates the full flow!
 | UI | ✅ Running | http://localhost:3000 |
 | MetaMask | 📝 Manual Config | - |
 
+
+

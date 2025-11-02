@@ -82,3 +82,5 @@ Once you have the circuit files, the system will **automatically**:
 3. Test with `test-subscription-scenario.ts`
 4. The demo will use real ZK proofs!
 
+
+

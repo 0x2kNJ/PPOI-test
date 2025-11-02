@@ -70,3 +70,5 @@ echo "📋 Streaming logs (Ctrl+C to stop watching, services will continue)..."
 echo ""
 tail -f "$(dirname "$0")/mock-backend.log" "$(dirname "$0")/frontend.log"
 
+
+

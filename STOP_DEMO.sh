@@ -39,3 +39,5 @@ fi
 echo ""
 echo "✅ All x402 Demo services stopped"
 
+
+

@@ -79,3 +79,5 @@ echo ""
 echo "📝 Update apps/merchant-demo/.env.local:"
 echo "NEXT_PUBLIC_X402_ADAPTER=$ADAPTER_ADDR"
 
+
+

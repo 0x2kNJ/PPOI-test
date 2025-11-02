@@ -174,3 +174,5 @@ The x402 demo is **production-ready** with:
 
 **Remaining**: Install `ethers` dependency and verify full SDK integration.
 
+
+

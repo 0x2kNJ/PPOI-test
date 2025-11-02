@@ -72,3 +72,5 @@ It will show:
 
 **You're 95% there!** Just install the prover and real ZK proofs will work automatically! 🎉
 
+
+

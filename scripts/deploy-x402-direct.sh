@@ -91,3 +91,5 @@ echo ""
 echo "📝 Add to .env.local:"
 echo "NEXT_PUBLIC_X402_ADAPTER=$ADAPTER_ADDR"
 
+
+

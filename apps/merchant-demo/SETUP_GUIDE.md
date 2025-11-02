@@ -276,3 +276,5 @@ apps/merchant-demo/
 
 Your x402 subscriptions demo is ready to run. The system uses the truncated ladder approach (17 buckets for $1,000) and supports full subscription lifecycle management with private pull-payments.
 
+
+
