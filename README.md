@@ -1,501 +1,371 @@
-# x402 Private Pull-Payments Demo
+# HTTP 402 Payment Required - Privacy-Preserving Paywalls
 
-> **Production-ready demonstration of private recurring payments using real zero-knowledge proofs**
+> **Production-ready demonstration of HTTP 402 with private micropayments using zero-knowledge proofs**
 
+[![HTTP 402](https://img.shields.io/badge/HTTP-402%20Payment%20Required-purple)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402)
 [![ZK Proofs](https://img.shields.io/badge/ZK-Real%20Proofs-green)](https://noir-lang.org)
 [![Barretenberg](https://img.shields.io/badge/Prover-Barretenberg-blue)](https://github.com/AztecProtocol/barretenberg)
 [![EIP-712](https://img.shields.io/badge/Permits-EIP--712-orange)](https://eips.ethereum.org/EIPS/eip-712)
 
-## 🎯 What This Demo Shows
+## 🎯 What is HTTP 402?
 
-This is a **complete working demo** of x402 private pull-payments with:
+**HTTP 402 Payment Required** is a standard HTTP status code for payment-protected resources. This demo shows how to build **privacy-preserving paywalls** for:
 
-- ✅ **12-month subscription simulation** - Payments every 10 seconds (simulates monthly payments)
-- ✅ **Automatic recurring payments** - Countdown timer triggers payments automatically
-- ✅ **Real zero-knowledge proofs** - Generated with Noir + Barretenberg (no mocks!)
-- ✅ **Gasless transactions** - Relayer pays all gas fees (users pay $0)
-- ✅ **EIP-712 permits** - Off-chain authorization signatures
-- ✅ **On-chain execution** - Real transactions on Anvil blockchain
+- 🌤️ **Premium API Access** - Weather data, financial data, AI services
+- 📰 **Paywalled Content** - Articles, videos, podcasts
+- 🔐 **Private Micropayments** - Pay per request without revealing your identity
+- 🔄 **Subscription Support** - Recurring access to protected resources
+- ⚡ **Instant Verification** - No waiting for blockchain confirmations
+
+## 🚀 HTTP 402 Demo Features
+
+**Main Demo** - Privacy-preserving paywall with:
+
+- ✅ **HTTP 402 status code** - Standard payment required protocol
+- ✅ **Pay-per-view content** - Weather data via OpenWeather API
+- ✅ **Private micropayments** - ZK proofs hide payment amounts and payers
+- ✅ **Real zero-knowledge proofs** - Generated with Noir + Barretenberg
+- ✅ **Instant verification** - No blockchain confirmations needed
+- ✅ **Subscription support** - Recurring access to paywalled resources
+- ✅ **Gasless transactions** - Relayer pays all gas fees
+
+**📖 Complete Setup Guide:** See [HTTP402_DEMO_README.md](HTTP402_DEMO_README.md)
+
+## 🔄 Also Available: x402 Subscriptions Demo
+
+This repository also includes a **private pull-payments** demo for recurring subscriptions:
+
+- ✅ **12-month subscription simulation** - Automatic recurring payments
+- ✅ **EIP-712 permits** - Off-chain authorization signatures  
+- ✅ **Gasless transactions** - Users pay $0 in gas fees
 - ✅ **Privacy verification** - Complete privacy guarantees
 
-## 📋 Prerequisites
+**📖 Setup Guide:** See [X402_DEMO_DOCUMENTATION.md](X402_DEMO_DOCUMENTATION.md) or [WHERE_X402_IS_USED.md](WHERE_X402_IS_USED.md)
 
-Before you start, ensure you have the following installed:
+## 📋 Quick Start
+
+### Option 1: HTTP 402 Paywall Demo (Recommended)
+
+For the **HTTP 402 Payment Required** demo with paywalled content:
+
+**📖 Follow the complete guide:** [HTTP402_DEMO_README.md](HTTP402_DEMO_README.md)
+
+**What you'll need:**
+- Node.js >= 18
+- MetaMask browser extension
+- OpenWeather API key (free tier)
+- 10 minutes setup time
+
+**What you'll see:**
+- Privacy-preserving paywall for weather data
+- Pay-per-request with ZK proofs
+- HTTP 402 status codes in action
+- Instant payment verification
+
+### Option 2: x402 Subscriptions Demo
+
+For the **x402 Private Pull-Payments** subscription demo:
+
+**📖 Follow the complete guide:** [X402_DEMO_DOCUMENTATION.md](X402_DEMO_DOCUMENTATION.md) or [WHERE_X402_IS_USED.md](WHERE_X402_IS_USED.md)
+
+**What you'll need:**
+- Node.js >= 18
+- Foundry (Anvil, Forge)
+- Noir + Barretenberg (for ZK proofs)
+- MetaMask browser extension
+- 20 minutes setup time
+
+**What you'll see:**
+- 12-month subscription simulation
+- Automatic recurring payments
+- Real ZK proof generation
+- Gasless transactions
+
+---
+
+## 📋 Prerequisites (For Both Demos)
 
 ### 1. Node.js
 
 **Required:** Node.js >= 18.0.0
 
-**Install:**
 ```bash
 # Check version
 node --version
 
-# If not installed, download from https://nodejs.org/
-# Or use nvm (Node Version Manager):
+# Install via nvm (recommended):
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 nvm install 18
 nvm use 18
 ```
 
-### 2. Foundry (Anvil)
+### 2. MetaMask
 
-**Required:** Foundry with `anvil`, `forge`, and `cast`
+**Required:** Browser extension for wallet connection
 
-**Install:**
-```bash
-# Install Foundry
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-
-# Verify installation
-anvil --version
-forge --version
-cast --version
-```
-
-### 3. Noir (nargo)
-
-**Required:** Noir >= 0.19.0 (for ZK circuit compilation)
-
-**Install:**
-```bash
-# Install Noirup
-curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
-source ~/.bashrc  # or ~/.zshrc
-
-# Install Noir
-noirup --version 1.0.0-beta.9
-
-# Verify installation
-nargo --version
-```
-
-### 4. Barretenberg (bb)
-
-**Required:** Barretenberg >= 0.8.0 (for ZK proof generation)
-
-**Install:**
-```bash
-# Install bbup
-curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install | bash
-source ~/.bashrc  # or ~/.zshrc
-
-# Install Barretenberg
-bbup
-
-# Verify installation
-bb --version
-```
-
-### 5. MetaMask (Browser Extension)
-
-**Required:** For wallet connection
-
-**Install:**
 - Download from https://metamask.io/
 - Install browser extension
 - Create or import a wallet
 
-## 🚀 Complete Setup Instructions
+### 3. Additional Requirements (x402 Subscriptions Only)
 
-### Step 1: Clone the Repository
+For the x402 subscriptions demo, you'll also need:
+- **Foundry** (Anvil, Forge, Cast)
+- **Noir** (nargo) for ZK circuit compilation
+- **Barretenberg** (bb) for ZK proof generation
 
-```bash
-git clone https://github.com/BermudaBay/x402-Demo.git
-cd x402-Demo
-```
+**See the complete setup guides above for installation instructions.**
 
-### Step 2: Install Backend Dependencies
+---
 
-```bash
-cd mock-backend
-npm install
-cd ..
-```
+## 🚀 HTTP 402 Demo Setup (Main Focus)
 
-**Expected output:**
-```
-✅ npm install completes successfully
-✅ Dependencies installed
-```
+This README provides an overview. For **complete HTTP 402 setup instructions**, see:
 
-**Troubleshooting:**
-- If `npm install` fails, check Node.js version: `node --version` (must be >= 18)
-- If SDK dependency fails, ensure `lib/pool/` exists
+### 📖 [HTTP402_DEMO_README.md](HTTP402_DEMO_README.md)
 
-### Step 3: Install Frontend Dependencies
+The HTTP 402 demo includes:
+- **Weather API Paywall** - Pay-per-request for weather data
+- **Privacy-Preserving Payments** - ZK proofs hide payment details
+- **HTTP 402 Status Codes** - Standard protocol implementation
+- **Subscription Support** - Recurring access to paywalled content
 
-```bash
-cd apps/merchant-demo
-npm install
-cd ../..
-```
+### Quick Overview:
 
-**Expected output:**
-```
-✅ npm install completes successfully
-✅ Next.js and dependencies installed
-```
+1. **Clone the repository**
+2. **Install dependencies** (Node.js, MetaMask)
+3. **Get OpenWeather API key** (free tier)
+4. **Start backend** (ZK proof generation)
+5. **Start frontend** (weather demo UI)
+6. **Access paywalled weather data** with private payments
 
-### Step 4: Compile ZK Circuit
+**Estimated setup time:** 10-15 minutes
 
-```bash
-cd lib/precompute-circuit
-nargo compile
-cd ../..
-```
+---
 
-**Expected output:**
-```
-✅ Compiled circuit program successfully
-✅ Generated artifacts in target/
-```
+## 🔄 x402 Subscriptions Demo (Alternative)
 
-**Troubleshooting:**
-- If `nargo` not found: Run `noirup --version 1.0.0-beta.9` and reload shell
-- If compilation fails: Check Noir version: `nargo --version`
+For the **x402 Private Pull-Payments** subscription demo, see:
 
-### Step 5: Deploy Smart Contract
+### 📖 [WHERE_X402_IS_USED.md](WHERE_X402_IS_USED.md) or [X402_DEMO_DOCUMENTATION.md](X402_DEMO_DOCUMENTATION.md)
 
-**First, start Anvil:**
+The x402 subscriptions demo includes:
+- **12-month subscription simulation** - Automatic recurring payments every 10 seconds
+- **Real ZK proof generation** - Using Noir + Barretenberg
+- **EIP-712 permits** - Off-chain authorization
+- **Gasless transactions** - Relayer pays gas fees
 
-```bash
-# Terminal 1: Start Anvil
-anvil --chain-id 31337
-```
-
-**Expected output:**
-```
-Listening on 127.0.0.1:8545
-Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (10000 ETH)
-Account #1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (10000 ETH)
-...
-```
-
-**Keep this terminal running!**
-
-**Then, deploy the contract:**
-
-```bash
-# Terminal 2: Deploy contract
-cd apps/merchant-demo
-bash scripts/redeploy-contract.sh
-```
-
-**Expected output:**
-```
-✅ Contract Deployed Successfully!
-📍 Deployed Address: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
-```
-
-**Copy the deployed address!**
-
-### Step 6: Configure Environment Variables
-
-Create `apps/merchant-demo/.env.local`:
-
-```bash
-cd apps/merchant-demo
-cat > .env.local << 'EOF'
-# Anvil (local testnet) Configuration
-RPC_URL=http://localhost:8545
-
-# Anvil's default test account #1 (pre-funded with 10000 ETH)
-RELAYER_PK=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
-# X402Adapter contract address (deployed to Anvil)
-# ⚠️ Replace with YOUR deployed contract address from Step 5!
-NEXT_PUBLIC_X402_ADAPTER=0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
-
-# Mock backend URL for ZK proof generation
-NEXT_PUBLIC_PRECOMPUTE_API_URL=http://localhost:3001
-
-# Chain ID (Anvil default)
-NEXT_PUBLIC_CHAIN_ID=31337
-EOF
-```
-
-**⚠️ IMPORTANT:**
-- Replace `NEXT_PUBLIC_X402_ADAPTER` with **your actual deployed contract address**
-- Never commit `.env.local` to version control (it's in `.gitignore`)
-
-### Step 7: Start All Services
-
-You'll need **3 terminals** running:
-
-**Terminal 1 - Anvil (Local Blockchain):**
-```bash
-anvil --chain-id 31337
-# Keep this running! Required for real transactions.
-```
-
-**Terminal 2 - Backend (ZK Proof Generation):**
-```bash
-cd mock-backend
-npm start
-```
-
-**Expected output:**
-```
-🚀 Mock Backend Server running on http://localhost:3001
-   Real ZK proof generation: ENABLED
-   SDK: INSTALLED
-   Endpoints:
-     GET  /health - Health check
-     POST /api/precomputes - Generate ZK precomputes
-```
-
-**Terminal 3 - Frontend:**
-```bash
-cd apps/merchant-demo
-npm run dev
-```
-
-**Expected output:**
-```
-▲ Next.js 14.2.33
-- Local:        http://localhost:3000
-- Environments: .env.local
-
-✓ Ready in X.Xs
-```
-
-## 🧪 Running the Demo
-
-### 1. Open the Demo
-
-Open your browser: **http://localhost:3000**
-
-### 2. Connect MetaMask
-
-1. Click **"Connect Wallet"**
-2. MetaMask will prompt to add network (Anvil)
-3. Approve the network switch
-4. Approve account connection
-
-**Expected:** Wallet address appears, status shows "Connected!"
-
-### 3. Create Subscription
-
-1. **Enter amount** (e.g., "10.00" for $10/month)
-2. **Click "Subscribe for 12 months"**
-3. **Wait for ZK proofs** (~7 seconds)
-   - Status will show: "Generating ZK proofs..."
-   - Console will show progress
-4. **Sign permit in MetaMask**
-   - MetaMask popup appears
-   - Review permit details
-   - Click "Sign"
-
-### 4. Watch Auto-Recurring Payments
-
-After signing:
-
-1. **Payment 1/12 completes immediately**
-   - Confirmation box appears with transaction hash
-2. **Countdown timer starts**
-   - Shows: "10s" → counts down
-   - Large display in blue box
-3. **Automatic payments every 10 seconds**
-   - Payment 2/12 at 10 seconds
-   - Payment 3/12 at 20 seconds
-   - ...
-   - Payment 12/12 at 110 seconds
-4. **Progress tracking**
-   - Progress bar fills up
-   - Payment history grows
-   - "X / 12 Payments Completed" updates
-
-### 5. Complete Demo
-
-After ~2 minutes:
-- **All 12 payments complete!** 🎉
-- Status: "🎉 All 12 payments completed! Subscription fulfilled."
-- Payment history shows all 12 transactions
-
-## ✅ Verification Checklist
-
-After setup, verify everything works:
-
-- [ ] Anvil is running on port 8545
-- [ ] Backend is running on port 3001
-- [ ] Frontend is running on port 3000
-- [ ] Contract is deployed to Anvil
-- [ ] `.env.local` has correct contract address
-- [ ] MetaMask can connect to Anvil network
-- [ ] ZK proofs generate successfully (~7 seconds)
-- [ ] EIP-712 permit signing works
-- [ ] First payment executes immediately
-- [ ] Countdown timer starts
-- [ ] Auto-payments trigger every 10 seconds
+**Estimated setup time:** 20-30 minutes (requires Foundry, Noir, Barretenberg)
 
 ## 🏗️ Architecture Overview
+
+### HTTP 402 Paywall Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Browser                              │
-│  (MetaMask + http://localhost:3000)                          │
+│  (MetaMask + Frontend)                                       │
 └──────────────────────┬──────────────────────────────────────┘
                        │
-                       │ 1. Connect Wallet
-                       │ 2. Enter Amount
-                       │ 3. Click "Subscribe"
+                       │ 1. Request Weather Data
                        │
 ┌──────────────────────▼──────────────────────────────────────┐
 │              Frontend (Next.js)                              │
 │              http://localhost:3000                           │
 │                                                              │
-│  - X402SubscriptionsDemo.tsx (UI)                           │
-│  - /api/subscription (POST/GET/PUT)                         │
-│  - /api/execute (Relayer)                                   │
+│  - Weather Demo UI                                           │
+│  - /api/weather (Protected Endpoint)                         │
+│  - Returns: HTTP 402 Payment Required                        │
 └──────┬─────────────────────────────────────────┬──────────┘
        │                                           │
-       │ 4. Request ZK Proofs                     │ 5. Execute Payment
+       │ 2. Generate ZK Proof                     │ 3. Verify Payment
        │                                           │
 ┌──────▼──────────────────────┐      ┌───────────▼──────────┐
-│     Backend (Express)        │      │    Smart Contract    │
-│     http://localhost:3001     │      │    (MockX402Adapter)  │
-│                              │      │    On Anvil          │
-│  - /api/precomputes          │      │    http://localhost:  │
-│  - ZK Proof Generation       │      │    8545              │
-│  - Barretenberg Honk         │      └──────────────────────┘
-│  - Noir Circuits             │
-└──────────────────────────────┘
+│     Backend (Express)        │      │  Payment Verifier    │
+│     http://localhost:3001     │      │                      │
+│                              │      │  - Verify ZK Proof   │
+│  - /api/precomputes          │      │  - Check Payment     │
+│  - ZK Proof Generation       │      │  - Grant Access      │
+│  - Barretenberg Prover       │      └──────────────────────┘
+│  - Noir Circuits             │                │
+└──────────────────────────────┘                │
+                                                 │
+                                    ┌────────────▼────────────┐
+                                    │   OpenWeather API       │
+                                    │   (Protected Resource)  │
+                                    │                         │
+                                    │  Returns: Weather Data  │
+                                    └─────────────────────────┘
 ```
+
+**Key Components:**
+1. **Frontend** - User interface for accessing paywalled content
+2. **Backend** - ZK proof generation service
+3. **Payment Verifier** - Validates payments and grants access
+4. **Protected Resource** - Content/APIs that require payment (OpenWeather)
 
 ## 📦 Project Structure
 
 ```
 demo/
-├── mock-backend/              # ZK proof generation service
+├── apps/
+│   └── merchant-demo/        # Next.js frontend demos
+│       ├── pages/
+│       │   ├── weather-demo.tsx         # HTTP 402 Weather Demo (Main)
+│       │   ├── http402-full-demo.tsx    # HTTP 402 Complete Demo
+│       │   ├── index.tsx                # x402 Subscriptions Demo
+│       │   └── api/
+│       │       ├── weather.ts           # Protected weather endpoint (402)
+│       │       ├── weather-subscription.ts # Subscription payments
+│       │       ├── subscription.ts      # Subscription management
+│       │       └── execute.ts          # Relayer (gasless tx)
+│       ├── components/
+│       │   └── X402SubscriptionsDemo.tsx  # Subscriptions UI
+│       ├── contracts/
+│       │   └── MockX402Adapter.sol      # Smart contract
+│       ├── scripts/
+│       │   ├── redeploy-contract.sh     # Deployment helper
+│       │   └── verify-privacy.sh       # Privacy verification
+│       └── .env.local                  # Environment config
+│
+├── mock-backend/             # ZK proof generation service
 │   ├── src/
 │   │   ├── server.ts         # Express server (port 3001)
-│   │   ├── api/precomputes.ts # ZK proof endpoint
-│   │   └── ...
+│   │   └── api/precomputes.ts # ZK proof endpoint
 │   └── package.json
 │
-├── apps/
-│   └── merchant-demo/        # Next.js frontend (port 3000)
-│       ├── components/
-│       │   └── X402SubscriptionsDemo.tsx  # Main UI
-│       ├── pages/
-│       │   ├── api/
-│       │   │   ├── subscription.ts  # Subscription management
-│       │   │   └── execute.ts      # Relayer (gasless tx)
-│       │   └── index.tsx
-│       ├── contracts/
-│       │   └── MockX402Adapter.sol  # Smart contract
-│       ├── scripts/
-│       │   ├── redeploy-contract.sh # Deployment helper
-│       │   └── verify-privacy.sh   # Privacy verification
-│       ├── .env.local              # Environment config
-│       └── .subscriptions.json     # File-based storage
-│
 ├── lib/
-│   └── precompute-circuit/   # Noir ZK circuit
-│       ├── src/
-│       │   └── main.nr       # Circuit logic
-│       └── Nargo.toml
+│   ├── precompute-circuit/   # Noir ZK circuit
+│   │   ├── src/
+│   │   │   └── main.nr       # Circuit logic
+│   │   └── Nargo.toml
+│   ├── pool/                 # Bermuda pool contracts (submodule)
+│   ├── registry/             # Registry contracts (submodule)
+│   └── sdk/                  # TypeScript SDK (submodule)
 │
+├── HTTP402_DEMO_README.md    # HTTP 402 complete setup guide
+├── WHERE_X402_IS_USED.md     # x402 subscriptions guide
 └── README.md                 # This file
 ```
 
 ## 🔧 Key Components
 
-### 1. ZK Proof Generation (mock-backend)
+### 1. HTTP 402 Paywall (`/api/weather`)
 
-- **Technology:** Noir circuits + Barretenberg Honk prover
+- **Technology:** Next.js API Routes
+- **Location:** `apps/merchant-demo/pages/api/weather.ts`
+- **Features:**
+  - Returns HTTP 402 status when payment required
+  - Verifies ZK proofs for payment
+  - Grants access to OpenWeather API data
+  - Supports both one-time and subscription payments
+
+### 2. ZK Proof Generation (mock-backend)
+
+- **Technology:** Noir circuits + Barretenberg prover
 - **Location:** `mock-backend/src/`
 - **Endpoint:** `POST /api/precomputes`
 - **Performance:** 17 proofs in 5-7 seconds (parallel generation)
+- **Used by:** Both HTTP 402 and x402 subscriptions demos
 
-### 2. Frontend (merchant-demo)
+### 3. Frontend Demos
 
 - **Technology:** Next.js 14 + React
-- **Location:** `apps/merchant-demo/`
-- **Features:**
-  - Wallet connection (MetaMask)
-  - EIP-712 permit signing
-  - Auto-recurring payments
-  - Countdown timer
-  - Progress tracking
-  - Payment history
+- **Location:** `apps/merchant-demo/pages/`
+- **HTTP 402 Demos:**
+  - `weather-demo.tsx` - Main HTTP 402 weather paywall
+  - `http402-full-demo.tsx` - Complete HTTP 402 implementation
+- **x402 Subscriptions Demo:**
+  - `index.tsx` - Recurring payments demo
 
-### 3. Smart Contract
+### 4. Payment Verification
 
-- **Technology:** Solidity 0.8.20
-- **Location:** `apps/merchant-demo/contracts/MockX402Adapter.sol`
-- **Functions:**
-  - `take()` - Pull payment from shielded note
-  - `redeemToPublic()` - Redeem to public address
-- **Events:**
-  - `Take` - Payment executed
-  - `TakeShielded` - Shielded-to-shielded payment
-
-### 4. Relayer (execute API)
-
-- **Technology:** Ethers.js + Anvil
-- **Location:** `apps/merchant-demo/pages/api/execute.ts`
-- **Function:** Executes transactions on behalf of users
-- **Gas:** Paid by relayer (users pay $0)
+- **Privacy-Preserving:** ZK proofs verify payments without revealing amounts
+- **Instant Verification:** No blockchain confirmations needed
+- **Gasless for Users:** Relayer pays transaction fees
 
 ## 🐛 Troubleshooting
 
-### Issue: "No precomputes available"
+### Common Issues
+
+#### Backend Not Starting
+
+**Problem:** Backend server fails to start or crashes
+
+**Solution:**
+1. Check Node.js version: `node --version` (must be >= 18)
+2. Reinstall dependencies: `cd mock-backend && npm install`
+3. Check for port conflicts (port 3001)
+4. View backend logs for specific errors
+
+#### ZK Proof Generation Fails
+
+**Problem:** "No precomputes available" or proof generation errors
 
 **Solution:**
 1. Ensure backend is running: `cd mock-backend && npm start`
 2. Check backend logs for errors
-3. Verify Noir circuit compiled: `cd lib/precompute-circuit && nargo compile`
-4. Verify Barretenberg installed: `bb --version`
+3. For x402 demo: Verify Noir circuit compiled: `cd lib/precompute-circuit && nargo compile`
+4. For x402 demo: Verify Barretenberg installed: `bb --version`
 
-### Issue: "gas estimate failed"
+#### HTTP 402 Not Working
 
-**Solution:**
-1. Ensure Anvil is running: `anvil --chain-id 31337`
-2. Verify contract is deployed
-3. Check `.env.local` has correct `NEXT_PUBLIC_X402_ADAPTER` address
-4. Redeploy contract: `bash scripts/redeploy-contract.sh`
-
-### Issue: "subscription not found"
+**Problem:** Weather endpoint not returning 402 or not granting access
 
 **Solution:**
-1. Check `.subscriptions.json` file exists
-2. Verify subscription was created successfully
-3. Restart frontend server
-4. Check browser console for errors
+1. Check `.env.local` has correct `OPENWEATHER_API_KEY`
+2. Verify payment proof is valid
+3. Check browser console for errors
+4. Restart both frontend and backend servers
 
-### Issue: MetaMask won't connect
+#### MetaMask Connection Issues
+
+**Problem:** MetaMask won't connect or shows errors
 
 **Solution:**
 1. Ensure MetaMask extension is installed
-2. Try refreshing page (Cmd+Shift+R)
-3. Check MetaMask logs (Settings → Advanced → Developer Mode)
-4. Try disconnecting and reconnecting
+2. Try refreshing page (Cmd+Shift+R / Ctrl+Shift+R)
+3. Check MetaMask is unlocked
+4. For x402 demo: Ensure Anvil is running and MetaMask is connected to local network
 
-### Issue: ZK proofs take too long
+#### Frontend Won't Start
 
-**Solution:**
-1. Check backend logs for errors
-2. Verify Barretenberg is installed correctly: `bb --version`
-3. Check system resources (CPU/RAM)
-4. Normal time: 5-7 seconds for 17 proofs
-
-### Issue: Auto-payments not triggering
+**Problem:** `npm run dev` fails or frontend crashes
 
 **Solution:**
-1. Check browser console for errors
-2. Verify countdown timer is running
-3. Check subscription is active in `.subscriptions.json`
-4. Restart frontend server
+1. Check Node.js version: `node --version` (must be >= 18)
+2. Reinstall dependencies: `cd apps/merchant-demo && npm install`
+3. Check for port conflicts (port 3000)
+4. Verify `.env.local` file exists and is configured correctly
+
+### Getting More Help
+
+**For detailed setup instructions:**
+- **HTTP 402 Demo:** [HTTP402_DEMO_README.md](HTTP402_DEMO_README.md)
+- **x402 Subscriptions:** [WHERE_X402_IS_USED.md](WHERE_X402_IS_USED.md)
+
+**For detailed troubleshooting:**
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Complete troubleshooting guide
 
 ## 📚 Additional Documentation
 
+### HTTP 402 Demo
+- **[HTTP402_DEMO_README.md](HTTP402_DEMO_README.md)** - Complete HTTP 402 setup guide
+- **[HTTP_402_DEMO_GUIDE.md](HTTP_402_DEMO_GUIDE.md)** - HTTP 402 usage guide
+- **[HTTP402_PRIVACY_EXPLAINED.md](HTTP402_PRIVACY_EXPLAINED.md)** - Privacy guarantees for HTTP 402
+- **[SUBSCRIPTION_HTTP_402_GUIDE.md](SUBSCRIPTION_HTTP_402_GUIDE.md)** - Subscription-based paywalls
+
+### x402 Subscriptions Demo
+- **[X402_DEMO_DOCUMENTATION.md](X402_DEMO_DOCUMENTATION.md)** - Complete technical documentation
+- **[WHERE_X402_IS_USED.md](WHERE_X402_IS_USED.md)** - Detailed x402 implementation guide
+
+### Privacy & Security
 - **[PRIVACY_VERIFICATION_GUIDE.md](PRIVACY_VERIFICATION_GUIDE.md)** - How to verify payments are private
 - **[GASLESS_TRANSACTIONS_EXPLAINED.md](GASLESS_TRANSACTIONS_EXPLAINED.md)** - How relayer pattern works
+
+### Advanced Features
 - **[AGENT_SUPPORT_GUIDE.md](AGENT_SUPPORT_GUIDE.md)** - How to add AI agent support
-- **[X402_DEMO_DOCUMENTATION.md](X402_DEMO_DOCUMENTATION.md)** - Complete technical documentation
+- **[REAL_ZK_PROOFS_WORKING.md](REAL_ZK_PROOFS_WORKING.md)** - Real ZK proof generation details
 
 ## 🔒 Security Notes
 
@@ -516,14 +386,21 @@ demo/
 
 ## 🎓 What You'll Learn
 
-By running this demo, you'll see:
+By running these demos, you'll understand:
 
-1. **Real ZK Proof Generation** - Watch proofs generate in ~7 seconds
-2. **EIP-712 Permit Signing** - Off-chain authorization flow
-3. **Gasless Transactions** - Relayer pattern in action
-4. **Auto-Recurring Payments** - Automated payment execution
-5. **Privacy Verification** - How to verify payments are private
-6. **On-Chain Execution** - Real blockchain transactions
+### HTTP 402 Demo
+1. **HTTP 402 Status Code** - Standard payment required protocol
+2. **Privacy-Preserving Paywalls** - Pay without revealing identity
+3. **Micropayments** - Pay per request for API access
+4. **Real ZK Proof Generation** - Watch proofs generate in ~7 seconds
+5. **Instant Verification** - No blockchain confirmation delays
+
+### x402 Subscriptions Demo
+1. **EIP-712 Permit Signing** - Off-chain authorization flow
+2. **Gasless Transactions** - Relayer pattern in action
+3. **Auto-Recurring Payments** - Automated payment execution
+4. **Privacy Verification** - How to verify payments are private
+5. **On-Chain Execution** - Real blockchain transactions
 
 ## 📄 License
 
@@ -540,6 +417,14 @@ Built with:
 
 ---
 
-**Ready to run?** Follow the [Complete Setup Instructions](#-complete-setup-instructions) above!
+## 🚀 Getting Started
 
-**Questions?** Check the [Troubleshooting](#-troubleshooting) section or open an issue on GitHub.
+**Ready to try HTTP 402?**  
+📖 Start with the [HTTP 402 Demo Setup Guide](HTTP402_DEMO_README.md)
+
+**Want to see x402 subscriptions?**  
+📖 See [WHERE_X402_IS_USED.md](WHERE_X402_IS_USED.md) or [X402_DEMO_DOCUMENTATION.md](X402_DEMO_DOCUMENTATION.md)
+
+**Questions?** Check the [Troubleshooting](#-troubleshooting) section or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+**Issues?** Open an issue on [GitHub](https://github.com/BermudaBay/x402-Demo/issues)
