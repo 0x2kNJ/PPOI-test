@@ -38,12 +38,12 @@ const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
   munich: { lat: 48.1351, lon: 11.5820 },
 };
 
-// OpenWeather API configuration
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
-// Using One Call API 3.0
-const OPENWEATHER_API_URL = "https://api.openweathermap.org/data/3.0/onecall";
+// WeatherAPI.com configuration (Free weather API)
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY || process.env.OPENWEATHER_API_KEY;
+// WeatherAPI.com base URL per: https://www.weatherapi.com/docs/
+const WEATHER_API_URL = "http://api.weatherapi.com/v1/current.json";
 
-// Get REAL weather data from OpenWeather API
+// Get REAL weather data from WeatherAPI.com
 const getWeatherData = async (city: string): Promise<WeatherResponse> => {
   const cityLower = city.toLowerCase();
   const coords = CITY_COORDS[cityLower];
@@ -57,8 +57,8 @@ const getWeatherData = async (city: string): Promise<WeatherResponse> => {
   }
 
   // If no API key, fall back to mock data
-  if (!OPENWEATHER_API_KEY) {
-    console.warn("⚠️ OPENWEATHER_API_KEY not set, using mock data");
+  if (!WEATHER_API_KEY) {
+    console.warn("⚠️ WEATHER_API_KEY not set, using mock data");
     const mockData: Record<string, WeatherResponse> = {
       hamburg: { city: "Hamburg", temperature: 7, condition: "overcast clouds" },
       berlin: { city: "Berlin", temperature: 5, condition: "clear sky" },
@@ -67,23 +67,43 @@ const getWeatherData = async (city: string): Promise<WeatherResponse> => {
     return mockData[cityLower] || { city, temperature: 8, condition: "partly cloudy" };
   }
   
-  console.log(`🌤️ Calling OpenWeather API for ${city} with key: ${OPENWEATHER_API_KEY.slice(0, 8)}...`);
+  console.log(`🌤️ Calling WeatherAPI.com for ${city} with key: ${WEATHER_API_KEY.slice(0, 8)}...`);
 
   try {
-    // Call OpenWeather One Call API 3.0
-    const url = `${OPENWEATHER_API_URL}?lat=${coords.lat}&lon=${coords.lon}&exclude=minutely,hourly,daily,alerts&units=metric&appid=${OPENWEATHER_API_KEY}`;
+    // Call WeatherAPI.com Current Weather API
+    // API format per: https://www.weatherapi.com/docs/
+    // q parameter can be city name, lat/lon, or other formats
+    const cityQuery = `${coords.lat},${coords.lon}`; // Use coordinates for better accuracy
+    const url = `${WEATHER_API_URL}?key=${WEATHER_API_KEY}&q=${cityQuery}`;
     
     const response = await fetch(url);
     
+    // Check HTTP status first
     if (!response.ok) {
-      throw new Error(`OpenWeather API error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
     
+    // Check for API errors (WeatherAPI.com returns errors with "error" field)
+    // Error format per: https://www.weatherapi.com/docs/#api-error-codes
+    if (data.error) {
+      const errorMsg = data.error.message || "WeatherAPI.com error";
+      console.error(`❌ WeatherAPI.com error ${data.error.code}:`, errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    // Verify response has current weather data
+    // WeatherAPI.com response structure: { location: {...}, current: {...} }
+    if (!data.current || !data.current.condition) {
+      throw new Error("Invalid API response format");
+    }
+    
     // Extract current weather
-    const temp = Math.round(data.current.temp);
-    const condition = data.current.weather[0]?.description || "unknown";
+    // WeatherAPI.com uses temp_c for Celsius, condition.text for description
+    const temp = Math.round(data.current.temp_c);
+    const condition = data.current.condition.text || "unknown";
     
     console.log(`✅ Real weather data for ${city}: ${temp}°C, ${condition}`);
     
@@ -94,8 +114,9 @@ const getWeatherData = async (city: string): Promise<WeatherResponse> => {
     };
     
   } catch (error: any) {
-    console.error("❌ OpenWeather API error:", error.message);
-    console.error("💡 Tip: Check OPENWEATHER_API_KEY or subscription status");
+    console.error("❌ WeatherAPI.com error:", error.message);
+    console.error("💡 Tip: Check WEATHER_API_KEY or WeatherAPI.com account status");
+    console.error("💡 API docs: https://www.weatherapi.com/docs/");
     // Fallback to mock data on error
     return {
       city: city.charAt(0).toUpperCase() + city.slice(1),
