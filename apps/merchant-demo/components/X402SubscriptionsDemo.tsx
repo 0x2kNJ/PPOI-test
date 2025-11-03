@@ -62,6 +62,9 @@ export default function X402SubscriptionsDemo() {
   const [delegationRoot, setDelegationRoot] = useState<string>("");
   const [attestationValid, setAttestationValid] = useState<boolean>(false);
   
+  // ✅ PRIVACY: Amount commitment for 100% amount confidentiality
+  const [useAmountCommitment, setUseAmountCommitment] = useState(true); // Default enabled
+  
   // Subscriptions list
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   
