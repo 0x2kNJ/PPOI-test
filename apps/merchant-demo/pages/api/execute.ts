@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { ethers } from "ethers";
 import X402Abi from "@/abis/X402Adapter.json";
+import { createSafeLogger } from "../../lib/sanitize";
+
+const logger = createSafeLogger("ExecuteAPI");
 
 // ENV (set in .env.local)
 const RPC_URL = process.env.RPC_URL!;
@@ -9,21 +12,22 @@ const ADAPTER_ADDR = process.env.NEXT_PUBLIC_X402_ADAPTER!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    console.log('Execute API called with method:', req.method);
+    logger.log('Execute API called', { method: req.method });
     
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
     const { adapter, method, args } = req.body || {};
-    console.log('Execute API params:', { adapter, method, argsLength: args?.length });
+    logger.log('Execute API params', { adapter: adapter?.slice(0, 10) + '...', method, argsLength: args?.length });
     
     if (!adapter || adapter.toLowerCase() !== ADAPTER_ADDR.toLowerCase()) {
-      console.error('Bad adapter address:', { adapter, expected: ADAPTER_ADDR });
+      logger.error('Bad adapter address', { adapter: adapter?.slice(0, 10) + '...', expected: ADAPTER_ADDR.slice(0, 10) + '...' });
       return res.status(400).json({ error: "bad adapter address", expected: ADAPTER_ADDR, received: adapter });
     }
 
-    if (!["take", "redeemToPublic"].includes(method)) {
-      console.error('Unsupported method:', method);
-      return res.status(400).json({ error: "unsupported method" });
+    // Support x402 methods including delegation-aware method
+    if (!["take", "redeemToPublic", "takeShielded", "takeWithDelegationAnchor"].includes(method)) {
+      logger.error('Unsupported method', { method });
+      return res.status(400).json({ error: "unsupported method", allowed: ["take", "redeemToPublic", "takeShielded", "takeWithDelegationAnchor"] });
     }
 
     const provider = new ethers.JsonRpcProvider(RPC_URL);
@@ -45,30 +49,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Simple gas guard
-    console.log('Estimating gas for method:', method);
+    logger.log('Estimating gas', { method });
     const gas = await contract[method].estimateGas(...args).catch((err) => {
-      console.error('Gas estimation failed:', err.message);
+      logger.error('Gas estimation failed', { error: err.message });
       return null;
     });
     
     if (!gas) {
-      console.error('Gas estimation returned null');
+      logger.error('Gas estimation returned null');
       return res.status(400).json({ error: "gas estimate failed", details: "Contract call would fail" });
     }
     
-    console.log('Gas estimated:', gas.toString());
+    logger.log('Gas estimated', { gas: gas.toString() });
 
-    console.log('Executing transaction...');
+    logger.log('Executing transaction', { method });
     const tx = await contract[method](...args, { gasLimit: gas * BigInt(12) / BigInt(10) }); // +20% buffer
-    console.log('Transaction sent:', tx.hash);
+    logger.log('Transaction sent', { txHash: tx.hash.slice(0, 10) + '...' });
     
     const receipt = await tx.wait();
-    console.log('Transaction confirmed:', receipt.hash);
+    logger.log('Transaction confirmed', { txHash: receipt.hash.slice(0, 10) + '...' });
 
     return res.status(200).json({ txHash: receipt.hash });
   } catch (e: any) {
-    console.error("relayer error:", e);
-    console.error("relayer error details:", e?.message, e?.code, e?.reason);
+    logger.error("relayer error", { error: e?.message || 'Unknown error', code: e?.code, reason: e?.reason });
     return res.status(500).json({ 
       error: e?.message ?? "execute failed",
       details: e?.reason || e?.code || "Unknown error"

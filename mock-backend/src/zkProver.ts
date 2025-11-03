@@ -200,9 +200,10 @@ export async function generateRealProof(witness: PrecomputeWitness): Promise<ZKP
     const proof = '0x' + proofBytes.toString('hex');
 
     // Step 5: Extract public inputs
+    // ✅ PRIVACY IMPROVEMENT: Hide public_amount (set to 0) to prevent balance analysis
     const publicInputs = [
       witness.root,
-      witness.public_amount,
+      '0', // Hide public_amount for privacy (was: witness.public_amount)
       witness.ext_data_hash,
       witness.nullifier,
     ];

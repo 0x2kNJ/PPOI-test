@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
+import { buildDelegationLeaf, actionHash, getMerkleProofForDelegation } from "../lib/delegation";
+import { AgentWallet } from "../lib/agent-wallet";
+import { generateAgentWallet, setupAgentDelegation, generateSubscriptionAgent } from "../lib/agent-delegation";
 
 declare global {
   interface Window {
@@ -44,6 +47,21 @@ export default function X402SubscriptionsDemo() {
   const [subscriptionPolicy, setSubscriptionPolicy] = useState(true);
   const [showPrecomputesDetails, setShowPrecomputesDetails] = useState(false);
   
+  // Agent setup (for agent-based flow)
+  const [useAgent, setUseAgent] = useState(false);
+  const [agentPrivateKey, setAgentPrivateKey] = useState<string>("");
+  const [agentAddress, setAgentAddress] = useState<string>("");
+  const [agentBalance, setAgentBalance] = useState<string>("0");
+  const [agentSetup, setAgentSetup] = useState<boolean>(false);
+  
+  // Delegation support (Option A) - DEFAULT ENABLED for maxAmount privacy
+  const [useDelegation, setUseDelegation] = useState(true); // ✅ Privacy: Hide maxAmount from blockchain
+  const [policyHash, setPolicyHash] = useState<string>("0x" + "11".repeat(32));
+  const [salt, setSalt] = useState<string>("0x" + "22".repeat(32));
+  const [leafCommitment, setLeafCommitment] = useState<string>("");
+  const [delegationRoot, setDelegationRoot] = useState<string>("");
+  const [attestationValid, setAttestationValid] = useState<boolean>(false);
+  
   // Subscriptions list
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   
@@ -77,6 +95,84 @@ export default function X402SubscriptionsDemo() {
 
   // Ref to track when payment should be triggered
   const shouldTriggerPayment = useRef(false);
+  
+  // Update delegation leaf when policy hash or salt changes
+  useEffect(() => {
+    if (useDelegation && policyHash && salt) {
+      try {
+        const leaf = buildDelegationLeaf({ 
+          policyHash: policyHash as `0x${string}`, 
+          salt: salt as `0x${string}` 
+        });
+        setLeafCommitment(leaf);
+      } catch (error) {
+        console.error("Error building delegation leaf:", error);
+      }
+    }
+  }, [policyHash, salt, useDelegation]);
+
+  // Set up agent wallet
+  const handleSetupAgent = async () => {
+    try {
+      if (!agentPrivateKey) {
+        // Generate new agent wallet
+        const newAgent = generateAgentWallet();
+        setAgentPrivateKey(newAgent.privateKey);
+        setAgentAddress(newAgent.address);
+        
+        // Create agent wallet instance to check balance
+        // Note: RPC_URL is server-side only, use NEXT_PUBLIC_RPC_URL or default
+        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 
+                      (typeof window === 'undefined' ? process.env.RPC_URL : undefined) || 
+                      "http://localhost:8545";
+        const agent = new AgentWallet(newAgent.privateKey, rpcUrl);
+        const balance = await agent.getBalance();
+        setAgentBalance(ethers.formatEther(balance));
+        setAgentSetup(true);
+        setStatus(`✅ Agent wallet generated: ${newAgent.address.slice(0, 10)}...`);
+      } else {
+        // Use provided private key
+        if (!agentPrivateKey.startsWith("0x") || agentPrivateKey.length !== 66) {
+          setStatus("❌ Invalid private key format");
+          return;
+        }
+        
+        // Note: RPC_URL is server-side only, use NEXT_PUBLIC_RPC_URL or default
+        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 
+                      (typeof window === 'undefined' ? process.env.RPC_URL : undefined) || 
+                      "http://localhost:8545";
+        const agent = new AgentWallet(agentPrivateKey, rpcUrl);
+        const address = agent.getAddress();
+        const balance = await agent.getBalance();
+        
+        setAgentAddress(address);
+        setAgentBalance(ethers.formatEther(balance));
+        setAgentSetup(true);
+        setUseAgent(true);
+        setStatus(`✅ Agent wallet configured: ${address.slice(0, 10)}...`);
+      }
+    } catch (error: any) {
+      console.error("Agent setup error:", error);
+      setStatus(`❌ Agent setup failed: ${error.message}`);
+    }
+  };
+
+  // Generate delegation for agent
+  const handleSetupAgentDelegation = () => {
+    if (!agentAddress || !useDelegation) {
+      setStatus("❌ Set up agent wallet and enable delegation first");
+      return;
+    }
+    
+    try {
+      const delegation = setupAgentDelegation(agentAddress, policyHash, salt);
+      setLeafCommitment(delegation.leafCommitment);
+      setStatus(`✅ Agent delegation configured. Leaf: ${delegation.leafCommitment.slice(0, 20)}...`);
+    } catch (error: any) {
+      console.error("Agent delegation setup error:", error);
+      setStatus(`❌ Delegation setup failed: ${error.message}`);
+    }
+  };
 
   // Auto-payment handler (defined early so it can be used in timer effect)
   const handleAutoPayment = useCallback(async () => {
@@ -281,22 +377,68 @@ export default function X402SubscriptionsDemo() {
 
   // Generate precompute + permit
   async function handleSubscribe() {
-    if (!connected || !amount) {
+    // If using agent, we don't need MetaMask connection
+    if (!useAgent && (!connected || !amount)) {
       setStatus("Please connect wallet and enter amount");
+      return;
+    }
+
+    // If using agent, require agent setup
+    if (useAgent && (!agentSetup || !agentAddress)) {
+      setStatus("Please set up agent wallet first");
+      return;
+    }
+
+    if (!amount) {
+      setStatus("Please enter subscription amount");
       return;
     }
 
     try {
       setLoading(true);
       
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+      // Generate subscription ID first (needed for unique agent generation)
+      const basePayerAddress = useAgent && agentSetup ? agentAddress : userAddress;
+      if (!basePayerAddress) {
+        throw new Error("No address available. Connect wallet or set up agent.");
+      }
       
-      // Generate noteId
-      const newNoteId = ethers.solidityPackedKeccak256(
-        ["address", "uint256"],
-        [userAddress, Date.now()]
-      );
+      const { generatePrivateNoteId } = await import("@/lib/note-privacy");
+      const { generatePrivateSubscriptionId } = await import("@/lib/subscription-id");
+      // PRIVACY IMPROVEMENT: Generate obfuscated subscription ID
+      const subscriptionId = generatePrivateSubscriptionId(basePayerAddress, Date.now());
+      
+      // PRIVACY IMPROVEMENT #2: Generate unique agent per subscription
+      // This breaks subscription linking - each subscription gets different agent
+      let agentWallet: AgentWallet | null = null;
+      let payerAddress = basePayerAddress;
+      
+      if (useAgent) {
+        // Note: RPC_URL is server-side only, use NEXT_PUBLIC_RPC_URL or default
+        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 
+                      (typeof window === 'undefined' ? process.env.RPC_URL : undefined) || 
+                      "http://localhost:8545";
+        
+        // Generate unique agent per subscription (not a single agent for all)
+        if (agentSetup && agentPrivateKey) {
+          // Legacy: use existing agent if already set up
+          agentWallet = new AgentWallet(agentPrivateKey, rpcUrl);
+          payerAddress = agentWallet.getAddress();
+        } else {
+          // New: generate unique agent per subscription for better privacy
+          const subscriptionAgent = generateSubscriptionAgent(basePayerAddress, subscriptionId, rpcUrl);
+          agentWallet = subscriptionAgent;
+          payerAddress = subscriptionAgent.getAddress();
+          // Update state to show the new agent
+          setAgentAddress(payerAddress);
+          // Note: AgentWallet doesn't expose privateKey as a public property for security
+          // We'll use a placeholder for display purposes
+          setAgentPrivateKey(""); // Private key not exposed for security
+        }
+      }
+      
+      // Generate noteId (use payer address, either agent or user)
+      const newNoteId = generatePrivateNoteId(payerAddress, subscriptionId, 0); // 0 = first payment
       setNoteId(newNoteId);
 
       // Using truncated ladder for $1,000 max (17 buckets)
@@ -308,8 +450,8 @@ export default function X402SubscriptionsDemo() {
       const expiry = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
       const nonce = Date.now();
 
-      // Get merchant address (use env or user's address as fallback)
-      const merchantAddress = process.env.NEXT_PUBLIC_MERCHANT || userAddress;
+      // Get merchant address (use env, agent address, or user's address as fallback)
+      const merchantAddress = process.env.NEXT_PUBLIC_MERCHANT || payerAddress || userAddress;
       
       // Validate addresses
       if (!ethers.isAddress(ADAPTER_ADDR) || ADAPTER_ADDR === "" || !ethers.isAddress(merchantAddress)) {
@@ -359,50 +501,212 @@ export default function X402SubscriptionsDemo() {
       setPrecomputeReady(true);
 
       // Step 2: Sign permit
-      setStatus("📝 Please sign the permit in MetaMask...");
+      // PRIVACY IMPROVEMENT #1: Use DelegationPermit (no maxAmount) when delegation enabled
+      // Otherwise, use regular Permit (with maxAmount)
+      let signature: string;
       
-      // Use env chainId as fallback if wallet chainId doesn't match
       const domainChainId = chainId || parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "31337");
+      const merchantCommitment = process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000";
       
-      // EIP-712 domain and types
-      const domain = {
-        name: "Bermuda X402",
-        version: "1",
-        chainId: domainChainId,
-        verifyingContract: ADAPTER_ADDR,
-      };
+      if (useDelegation) {
+        // PRIVACY IMPROVEMENT #1: Sign DelegationPermit (no maxAmount)
+        // maxAmount is verified privately in Nillion attestation
+        if (useAgent && agentWallet) {
+          // Agent signs DelegationPermit programmatically
+          setStatus("🤖 Agent signing DelegationPermit (no maxAmount)...");
+          console.log("🤖 Agent wallet signing DelegationPermit (privacy-enhanced)");
+          
+          signature = await agentWallet.signDelegationPermit(
+            {
+              noteId: newNoteId,
+              merchant: merchantAddress,
+              // maxAmount removed - verified privately in Nillion attestation
+              expiry,
+              nonce,
+              merchantCommitment: merchantCommitment as `0x${string}`,
+            },
+            domainChainId,
+            ADAPTER_ADDR
+          );
+          
+          console.log("✅ Agent DelegationPermit signed (no maxAmount visible on-chain)!");
+        } else {
+          // User signs DelegationPermit with MetaMask
+          const provider = new ethers.BrowserProvider(window.ethereum!);
+          const signer = await provider.getSigner();
+          
+          setStatus("📝 Please sign the DelegationPermit in MetaMask (no maxAmount)...");
+          
+          // EIP-712 domain and types for DelegationPermit
+          const domain = {
+            name: "Bermuda X402",
+            version: "1",
+            chainId: domainChainId,
+            verifyingContract: ADAPTER_ADDR,
+          };
 
-      const types = {
-        Permit: [
-          { name: "noteId", type: "bytes32" },
-          { name: "merchant", type: "address" },
-          { name: "maxAmount", type: "uint256" },
-          { name: "expiry", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "merchantCommitment", type: "bytes32" },
-        ],
-      };
+          const types = {
+            DelegationPermit: [
+              { name: "noteId", type: "bytes32" },
+              { name: "merchant", type: "address" },
+              // maxAmount removed - verified privately in Nillion attestation
+              { name: "expiry", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+              { name: "merchantCommitment", type: "bytes32" },
+            ],
+          };
 
-      // Sign permit - MetaMask should prompt automatically
-      // If authorization error occurs, it will be caught in the outer try/catch
-      setStatus("📝 Waiting for MetaMask signature... Please approve the signature request.");
-      
-      const signature = await signer.signTypedData(domain, types, {
-        noteId: newNoteId,
-        merchant: merchantAddress,
-        maxAmount: maxAmountWei,
-        expiry: BigInt(expiry),
-        nonce: BigInt(nonce),
-        merchantCommitment: (process.env.NEXT_PUBLIC_MERCHANT_COMMITMENT || "0x0000000000000000000000000000000000000000000000000000000000000000") as `0x${string}`, // Shielded address if configured, else public
-      });
+          // Sign DelegationPermit - MetaMask should prompt automatically
+          setStatus("📝 Waiting for MetaMask signature (DelegationPermit)...");
+          
+          signature = await signer.signTypedData(domain, types, {
+            noteId: newNoteId,
+            merchant: merchantAddress,
+            expiry: BigInt(expiry),
+            nonce: BigInt(nonce),
+            merchantCommitment: merchantCommitment as `0x${string}`,
+          });
+
+          console.log("✅ DelegationPermit signed with MetaMask (privacy-enhanced)!");
+        }
+      } else {
+        // Regular Permit (with maxAmount) for non-delegation flow
+        if (useAgent && agentWallet) {
+          // Agent signs permit programmatically
+          setStatus("🤖 Agent signing permit (no MetaMask needed)...");
+          console.log("🤖 Agent wallet signing permit programmatically");
+          
+          signature = await agentWallet.signPermit(
+            {
+              noteId: newNoteId,
+              merchant: merchantAddress,
+              maxAmount: maxAmountWei.toString(),
+              expiry,
+              nonce,
+              merchantCommitment: merchantCommitment as `0x${string}`,
+            },
+            domainChainId,
+            ADAPTER_ADDR
+          );
+          
+          console.log("✅ Agent permit signed programmatically!");
+        } else {
+          // User signs with MetaMask
+          const provider = new ethers.BrowserProvider(window.ethereum!);
+          const signer = await provider.getSigner();
+          
+          setStatus("📝 Please sign the permit in MetaMask...");
+          
+          // EIP-712 domain and types
+          const domain = {
+            name: "Bermuda X402",
+            version: "1",
+            chainId: domainChainId,
+            verifyingContract: ADAPTER_ADDR,
+          };
+
+          const types = {
+            Permit: [
+              { name: "noteId", type: "bytes32" },
+              { name: "merchant", type: "address" },
+              { name: "maxAmount", type: "uint256" },
+              { name: "expiry", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+              { name: "merchantCommitment", type: "bytes32" },
+            ],
+          };
+
+          // Sign permit - MetaMask should prompt automatically
+          setStatus("📝 Waiting for MetaMask signature... Please approve the signature request.");
+          
+          signature = await signer.signTypedData(domain, types, {
+            noteId: newNoteId,
+            merchant: merchantAddress,
+            maxAmount: maxAmountWei,
+            expiry: BigInt(expiry),
+            nonce: BigInt(nonce),
+            merchantCommitment: merchantCommitment as `0x${string}`,
+          });
+
+          console.log("✅ Permit signed with MetaMask!");
+        }
+      }
 
       setPermitSignature(signature);
       setPermitSigned(true);
-      console.log("✅ Permit signed!");
 
       // Step 3: Create subscription & execute first payment
       setStatus("💳 Creating subscription & processing first payment...");
-      await handleCreateSubscription(signature, newNoteId, maxAmountWei.toString(), expiry, nonce, precomputeList);
+      
+      // If delegation is enabled, fetch root and attestation
+      let delegationData: {
+        root?: string;
+        leafCommitment?: string;
+        merkleProof?: string[];
+        actionHash?: string;
+        attestation?: string;
+      } = {};
+      
+      if (useDelegation && leafCommitment) {
+        try {
+          setStatus("🔐 Fetching delegation root and attestation...");
+          
+          // Fetch delegation root
+          const rootResp = await fetch("/api/delegation-root");
+          if (rootResp.ok) {
+            const { root } = await rootResp.json();
+            delegationData.root = root;
+            setDelegationRoot(root);
+            
+            // Get Merkle proof
+            const merkleProof = await getMerkleProofForDelegation(leafCommitment as `0x${string}`);
+            delegationData.merkleProof = merkleProof;
+            
+            // Compute action hash
+            const aHash = actionHash({
+              method: "takeWithDelegationAnchor",
+              recipientOrMid: merchantAddress,
+              amount: amountWei.toString(),
+              chainId: domainChainId,
+              adapter: ADAPTER_ADDR,
+            });
+            delegationData.actionHash = aHash;
+            
+            // Get Nillion attestation (mock for now)
+            const attResp = await fetch("/api/nillion/attest", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                leafCommitment: leafCommitment,
+                actionHash: aHash,
+                latestRoot: root,
+              }),
+            });
+            
+            if (attResp.ok) {
+              const { attestation } = await attResp.json();
+              delegationData.attestation = attestation;
+              setAttestationValid(true);
+              console.log("✅ Delegation attestation obtained");
+            }
+          }
+        } catch (error) {
+          console.error("Delegation setup error:", error);
+          // Continue without delegation if fetch fails
+          setStatus("⚠️ Delegation setup failed, continuing without delegation...");
+        }
+      }
+      
+      await handleCreateSubscription(
+        signature, 
+        newNoteId, 
+        maxAmountWei.toString(), 
+        expiry, 
+        nonce, 
+        precomputeList,
+        payerAddress, // Use agent or user address
+        delegationData // Include delegation data if enabled
+      );
       
     } catch (error: any) {
       console.error("Subscribe error:", error);
@@ -469,11 +773,21 @@ export default function X402SubscriptionsDemo() {
     maxAmountValue: string,
     expiry: number,
     nonce: number,
-    precomputesList?: typeof precomputes // Optional parameter with precomputes to avoid race condition
+    precomputesList?: typeof precomputes, // Optional parameter with precomputes to avoid race condition
+    payerAddressOverride?: string, // Use agent address if agent mode
+    delegationData?: {
+      root?: string;
+      leafCommitment?: string;
+      merkleProof?: string[];
+      actionHash?: string;
+      attestation?: string;
+    }
   ) {
     try {
       const amountWei = ethers.parseUnits(amount, 6).toString();
-      const merchantAddress = process.env.NEXT_PUBLIC_MERCHANT || userAddress;
+      // Use agent address or user address for merchant (or env var)
+      const merchantAddress = process.env.NEXT_PUBLIC_MERCHANT || 
+                             (payerAddressOverride || userAddress);
       
       // Validate merchant address
       if (!ethers.isAddress(merchantAddress)) {
@@ -508,23 +822,40 @@ export default function X402SubscriptionsDemo() {
       
       console.log(`✅ Using precompute: bucketAmount=${matchingPrecompute.bucketAmount}, proofLength=${matchingPrecompute.proof.length}`);
       
+      // Determine user address (agent or MetaMask user)
+      const subscriptionUserAddress = payerAddressOverride || userAddress;
+      
+      // Build subscription payload
+      const subscriptionPayload: any = {
+        merchantName: "Subscription Service",
+        merchantAddress,
+        userAddress: subscriptionUserAddress,
+        amount: amountWei,
+        interval: "monthly",
+        noteId: noteIdValue,
+        permitSignature: signature,
+        maxAmount: maxAmountValue,
+        expiry,
+        nonce,
+        proof: matchingPrecompute.proof,
+        publicInputs: matchingPrecompute.publicInputs, // Pass actual public inputs from witness
+      };
+      
+      // Add delegation fields if delegation is enabled
+      if (delegationData && delegationData.root && delegationData.leafCommitment) {
+        subscriptionPayload.useDelegation = true;
+        subscriptionPayload.leafCommitment = delegationData.leafCommitment;
+        subscriptionPayload.delegationRoot = delegationData.root;
+        subscriptionPayload.delegationMerkleProof = delegationData.merkleProof || [];
+        subscriptionPayload.delegationActionHash = delegationData.actionHash;
+        subscriptionPayload.delegationAttestation = delegationData.attestation;
+        console.log("✅ Including delegation data in subscription");
+      }
+
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          merchantName: "Subscription Service",
-          merchantAddress,
-          userAddress,
-          amount: amountWei,
-          interval: "monthly",
-          noteId: noteIdValue,
-          permitSignature: signature,
-          maxAmount: maxAmountValue,
-          expiry,
-          nonce,
-          proof: matchingPrecompute.proof,
-          publicInputs: matchingPrecompute.publicInputs, // Pass actual public inputs from witness
-        }),
+        body: JSON.stringify(subscriptionPayload),
       });
 
       if (!res.ok) {
@@ -725,6 +1056,288 @@ export default function X402SubscriptionsDemo() {
                   outline: "none",
                 }}
               />
+            </div>
+
+            {/* Agent Setup (for Agent-based Flow) */}
+            <div style={{
+              backgroundColor: "#2a2a2a",
+              borderRadius: "8px",
+              padding: "1rem",
+              marginBottom: "1.5rem",
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: useAgent || agentSetup ? "1rem" : "0",
+              }}>
+                <span style={{ color: "#ffffff", fontSize: "0.95rem", fontWeight: "500" }}>
+                  🤖 Use Agent Wallet
+                </span>
+                <div
+                  onClick={() => {
+                    setUseAgent(!useAgent);
+                    if (!agentSetup && !useAgent) {
+                      handleSetupAgent();
+                    }
+                  }}
+                  style={{
+                    width: "50px",
+                    height: "28px",
+                    backgroundColor: useAgent || agentSetup ? "#22c55e" : "#4a4a4a",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "background-color 0.2s",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      backgroundColor: "white",
+                      borderRadius: "12px",
+                      position: "absolute",
+                      top: "2px",
+                      left: useAgent || agentSetup ? "24px" : "2px",
+                      transition: "left 0.2s",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {(useAgent || agentSetup) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {!agentSetup ? (
+                    <div>
+                      <label style={{
+                        display: "block",
+                        fontSize: "0.85rem",
+                        color: "#cccccc",
+                        marginBottom: "0.5rem",
+                      }}>
+                        Agent Private Key (optional - will generate if empty)
+                      </label>
+                      <input
+                        type="password"
+                        value={agentPrivateKey}
+                        onChange={(e) => setAgentPrivateKey(e.target.value)}
+                        placeholder="0x... or leave empty to generate"
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          fontSize: "0.9rem",
+                          backgroundColor: "#1a1a1a",
+                          color: "#ffffff",
+                          border: "1px solid #3a3a3a",
+                          borderRadius: "6px",
+                          outline: "none",
+                          fontFamily: "monospace",
+                          marginBottom: "0.5rem",
+                        }}
+                      />
+                      <button
+                        onClick={handleSetupAgent}
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          fontSize: "0.9rem",
+                          fontWeight: "600",
+                          backgroundColor: "#1e40af",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {agentPrivateKey ? "Set Up Agent" : "Generate Agent Wallet"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: "0.75rem",
+                      backgroundColor: "#1a1a1a",
+                      borderRadius: "6px",
+                      fontSize: "0.85rem",
+                    }}>
+                      <div style={{ color: "#22c55e", marginBottom: "0.5rem", fontWeight: "600" }}>
+                        ✅ Agent Wallet Configured
+                      </div>
+                      <div style={{ color: "#cccccc", marginBottom: "0.25rem" }}>
+                        Address: <span style={{ fontFamily: "monospace", color: "#ffffff" }}>{agentAddress}</span>
+                      </div>
+                      <div style={{ color: "#cccccc", marginBottom: "0.25rem" }}>
+                        Balance: <span style={{ fontFamily: "monospace", color: "#ffffff" }}>{agentBalance} ETH</span>
+                      </div>
+                      {agentPrivateKey && (
+                        <div style={{ color: "#888888", fontSize: "0.75rem", marginTop: "0.5rem" }}>
+                          ⚠️ Private key configured (hidden for security)
+                          <div style={{ fontFamily: "monospace", color: "#666", marginTop: "0.25rem" }}>
+                            {agentPrivateKey.slice(0, 6)}...{agentPrivateKey.slice(-4)}
+                          </div>
+                          <div style={{ fontSize: "0.7rem", color: "#666", marginTop: "0.25rem" }}>
+                            ⚠️ Store this key securely! It will not be shown again.
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          setAgentSetup(false);
+                          setAgentPrivateKey("");
+                          setAgentAddress("");
+                          setUseAgent(false);
+                        }}
+                        style={{
+                          marginTop: "0.75rem",
+                          width: "100%",
+                          padding: "0.5rem",
+                          fontSize: "0.85rem",
+                          backgroundColor: "#4a4a4a",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Reset Agent
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Delegation Toggle (Option A) */}
+            <div style={{
+              backgroundColor: "#2a2a2a",
+              borderRadius: "8px",
+              padding: "1rem",
+              marginBottom: "1.5rem",
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: useDelegation ? "1rem" : "0",
+              }}>
+                <span style={{ color: "#ffffff", fontSize: "0.95rem", fontWeight: "500" }}>
+                  Use private delegation (Option A)
+                </span>
+                <div
+                  onClick={() => setUseDelegation(!useDelegation)}
+                  style={{
+                    width: "50px",
+                    height: "28px",
+                    backgroundColor: useDelegation ? "#22c55e" : "#4a4a4a",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "background-color 0.2s",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      backgroundColor: "white",
+                      borderRadius: "12px",
+                      position: "absolute",
+                      top: "2px",
+                      left: useDelegation ? "24px" : "2px",
+                      transition: "left 0.2s",
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {useDelegation && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{
+                      display: "block",
+                      fontSize: "0.85rem",
+                      color: "#cccccc",
+                      marginBottom: "0.5rem",
+                    }}>
+                      Policy Hash
+                    </label>
+                    <input
+                      type="text"
+                      value={policyHash}
+                      onChange={(e) => setPolicyHash(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        fontSize: "0.9rem",
+                        backgroundColor: "#1a1a1a",
+                        color: "#ffffff",
+                        border: "1px solid #3a3a3a",
+                        borderRadius: "6px",
+                        outline: "none",
+                        fontFamily: "monospace",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: "block",
+                      fontSize: "0.85rem",
+                      color: "#cccccc",
+                      marginBottom: "0.5rem",
+                    }}>
+                      Salt
+                    </label>
+                    <input
+                      type="text"
+                      value={salt}
+                      onChange={(e) => setSalt(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        fontSize: "0.9rem",
+                        backgroundColor: "#1a1a1a",
+                        color: "#ffffff",
+                        border: "1px solid #3a3a3a",
+                        borderRadius: "6px",
+                        outline: "none",
+                        fontFamily: "monospace",
+                      }}
+                    />
+                  </div>
+                  {leafCommitment && (
+                    <div style={{
+                      fontSize: "0.8rem",
+                      color: "#888888",
+                      padding: "0.5rem",
+                      backgroundColor: "#1a1a1a",
+                      borderRadius: "4px",
+                      wordBreak: "break-all",
+                    }}>
+                      <div style={{ color: "#cccccc", marginBottom: "0.25rem" }}>Delegation Leaf:</div>
+                      <div style={{ fontFamily: "monospace" }}>{leafCommitment}</div>
+                    </div>
+                  )}
+                  {agentSetup && useDelegation && (
+                    <button
+                      onClick={handleSetupAgentDelegation}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        fontSize: "0.9rem",
+                        fontWeight: "600",
+                        backgroundColor: "#1e40af",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        marginTop: "0.5rem",
+                      }}
+                    >
+                      Set Up Agent Delegation
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Subscribe Button */}

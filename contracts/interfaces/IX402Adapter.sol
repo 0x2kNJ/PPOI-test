@@ -13,6 +13,18 @@ interface IX402Adapter {
         uint256 expiry;
         uint256 nonce;
         bytes signature; // EIP-712 sig by note owner/delegated signer
+        bytes32 merchantCommitment;
+    }
+    
+    // DelegationPermit: maxAmount removed - verified privately in Nillion attestation
+    struct DelegationPermit {
+        bytes32 noteId;
+        address merchant;
+        // maxAmount removed - Nillion attestation verifies amount <= maxAmount privately
+        uint256 expiry;
+        uint256 nonce;
+        bytes signature;
+        bytes32 merchantCommitment;
     }
 
     /**

@@ -16,6 +16,15 @@ export interface PermitData {
   merchantCommitment?: string;
 }
 
+export interface DelegationPermitData {
+  noteId: string;
+  merchant: string;
+  // maxAmount removed - verified privately in Nillion attestation
+  expiry: number;
+  nonce: number;
+  merchantCommitment?: string;
+}
+
 export class AgentWallet {
   private wallet: Wallet;
   private provider: ethers.JsonRpcProvider;
@@ -86,6 +95,55 @@ export class AgentWallet {
       noteId: permit.noteId,
       merchant: permit.merchant,
       maxAmount: permit.maxAmount,
+      expiry: BigInt(permit.expiry),
+      nonce: BigInt(permit.nonce),
+      merchantCommitment: permit.merchantCommitment || "0x0000000000000000000000000000000000000000000000000000000000000000",
+    };
+    
+    // Agent signs programmatically (no MetaMask!)
+    return await this.wallet.signTypedData(domain, types, permitData);
+  }
+  
+  /**
+   * Sign a DelegationPermit (no maxAmount - verified privately in Nillion)
+   * 
+   * @param permit - DelegationPermit data to sign
+   * @param chainId - Chain ID for domain separation
+   * @param contractAddress - Contract address for domain separation
+   * @returns EIP-712 signature
+   */
+  async signDelegationPermit(
+    permit: DelegationPermitData,
+    chainId: number,
+    contractAddress?: string
+  ): Promise<string> {
+    const adapterAddr = contractAddress || process.env.NEXT_PUBLIC_X402_ADAPTER || "";
+    
+    if (!adapterAddr) {
+      throw new Error("Contract address required for EIP-712 signing");
+    }
+    
+    const domain = {
+      name: "Bermuda X402",
+      version: "1",
+      chainId: chainId,
+      verifyingContract: adapterAddr,
+    };
+    
+    // DelegationPermit doesn't include maxAmount
+    const types = {
+      DelegationPermit: [
+        { name: "noteId", type: "bytes32" },
+        { name: "merchant", type: "address" },
+        { name: "expiry", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "merchantCommitment", type: "bytes32" },
+      ],
+    };
+    
+    const permitData = {
+      noteId: permit.noteId,
+      merchant: permit.merchant,
       expiry: BigInt(permit.expiry),
       nonce: BigInt(permit.nonce),
       merchantCommitment: permit.merchantCommitment || "0x0000000000000000000000000000000000000000000000000000000000000000",
