@@ -60,35 +60,6 @@ This is a **focused integration demo** showing how to implement Privacy-Preservi
 
 This is a **demo repository**, not a full contract development environment. For complete smart contract infrastructure (circuits, deployment tools, testing framework), see the main PPOI development repository.
 
-## 🎯 What Makes This Special
-
-This repository represents a **production-ready** PPOI implementation:
-
-✅ **Working End-to-End Flow**
-- Desktop → Mobile via QR code
-- Real-time WebSocket updates
-- Complete verification lifecycle
-
-✅ **Professional Documentation** (96% reduction in doc clutter)
-- Clear setup instructions
-- Architecture diagrams
-- Troubleshooting guides
-
-✅ **Clean Code Structure**
-- Modular services (`blockaid.ts`, `self.ts`)
-- Proper error handling
-- Comprehensive logging
-
-✅ **Real Integrations**
-- Self Protocol SDK (`@selfxyz/core`, `@selfxyz/qrcode`)
-- Blockaid API for address screening
-- WebSocket for real-time communication
-
-✅ **Developer-Friendly**
-- Mock backend for local testing
-- Automated setup scripts
-- Contributing guidelines
-
 ## Architecture
 
 ```
