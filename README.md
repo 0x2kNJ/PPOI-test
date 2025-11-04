@@ -21,9 +21,50 @@ This demo shows how to create privacy-preserving financial transactions that inc
 - **Composite PPOI Notes** that combine multiple verification sources
 - **Desktop-to-Mobile Flow** with QR codes and real-time WebSocket updates
 
+## 🎯 System Scope
+
+This repository contains a **complete PPOI (Privacy-Preserving Origin Inspection) system**:
+
+### What's Included
+
+**Frontend Demo** (`ui/`)
+- React + TypeScript UI for testing PPOI flow
+- Self Protocol QR code integration
+- Blockaid address screening
+- MetaMask wallet connection
+- Real-time WebSocket updates
+
+**Smart Contracts** (`contracts/`, `lib/`)
+- `PPOIVerifier.sol` - On-chain proof verification
+- Bermuda privacy pool integration
+- ZK circuit infrastructure (Noir/Barretenberg)
+- OpenZeppelin & custom contract libraries
+- Foundry test suite
+
+**Backend Services** (`backend/`)
+- Self Protocol callback server
+- WebSocket server for real-time updates
+- Express API for verification handling
+
+**Developer Tools** (`scripts/`, `sdk/`)
+- Deployment scripts for various networks
+- PPOI SDK utilities
+- Contract interaction helpers
+
+**MetaMask Snap** (`snap/`)
+- Browser extension for PPOI integration
+- Direct wallet integration
+
+### Use Cases
+
+1. **Developers**: Test PPOI integration in your dApp
+2. **Auditors**: Review smart contracts and ZK circuits
+3. **Researchers**: Study privacy-preserving compliance architecture
+4. **Integrators**: Use SDK to add PPOI to existing systems
+
 ## 🎯 What Makes This Special
 
-This branch (`self-protocol-demo`) represents a **production-ready transformation** of an AI-generated prototype into a clean, maintainable codebase:
+This repository represents a **production-ready** PPOI implementation:
 
 ✅ **Working End-to-End Flow**
 - Desktop → Mobile via QR code
@@ -222,27 +263,71 @@ Together, they provide **comprehensive compliance coverage** for privacy-preserv
 
 ## Project Structure
 
+This is a **complete PPOI system** including frontend demo, backend services, smart contracts, and ZK circuit infrastructure.
+
 ```
-demo/
-├── ui/                          # Frontend application
+ppoi-test/
+├── ui/                          # Frontend Demo Application
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── PPOIFlowDemo.tsx   # Main demo component
-│   │   │   └── PolicyForm.tsx     # Policy configuration
+│   │   │   ├── PPOIFlowDemo.tsx   # Main PPOI flow component
+│   │   │   └── PolicyForm.tsx     # Policy configuration UI
 │   │   └── services/
-│   │       ├── blockaid.ts        # Blockaid API integration
+│   │       ├── blockaid.ts        # Blockaid API client
 │   │       └── self.ts            # Self Protocol integration
 │   ├── package.json
-│   └── .env.demo                  # Environment config
+│   └── .env.demo                  # Environment configuration
 │
-├── backend/                     # Mock verification server
-│   ├── mock-server.js           # Express + WebSocket server
-│   └── package.json
+├── backend/                     # Self Protocol Mock Backend
+│   ├── mock-server.js           # Express server with WebSocket
+│   └── package.json             # Backend dependencies
 │
-└── docs/                        # Documentation
-    ├── ARCHITECTURE.md          # System architecture
-    ├── SELF_PROTOCOL.md         # Self Protocol integration
-    └── BLOCKAID.md              # Blockaid integration
+├── contracts/                   # Solidity Smart Contracts
+│   ├── PPOIVerifier.sol         # PPOI verification contract
+│   ├── interfaces/              # Contract interfaces
+│   └── PPOI_ARGS.json           # Deployment arguments
+│
+├── lib/                         # Smart Contract Dependencies (Git Submodules)
+│   ├── openzeppelin-contracts/  # OpenZeppelin library
+│   ├── pool/                    # Bermuda privacy pool contracts
+│   ├── poseidon2-compression-huff/ # Poseidon hash (Huff)
+│   ├── precompute-circuit/      # ZK precompute circuits
+│   ├── registry/                # Contract registry
+│   ├── relayer/                 # Relayer infrastructure
+│   ├── reserve-circuit/         # Reserve proof circuits
+│   └── stx-circuit/             # STX circuit implementation
+│
+├── mocks/                       # Mock Contracts for Testing
+│   ├── MockUSDC.sol             # Mock USDC token
+│   ├── MockWETH.sol             # Mock WETH token
+│   └── MockFoxConnectUS.sol     # Mock FoxConnect
+│
+├── scripts/                     # Deployment & Utility Scripts
+│   ├── deploy-*.sh              # Various deployment scripts
+│   └── *.ts                     # TypeScript deployment helpers
+│
+├── sdk/                         # PPOI SDK Components
+│   └── *.ts                     # SDK utilities
+│
+├── snap/                        # MetaMask Snap Integration
+│   ├── src/                     # Snap source code
+│   └── package.json             # Snap dependencies
+│
+├── test/                        # Solidity Contract Tests
+│   └── *.sol                    # Foundry test files
+│
+├── vendor/                      # Vendored Third-Party Code
+│   └── *.sol                    # External Solidity dependencies
+│
+├── deployments/                 # Deployment Artifacts
+│   └── *.json                   # Contract addresses & ABIs
+│
+├── docs/                        # Documentation
+│   └── ARCHITECTURE.md          # System architecture
+│
+└── archive/                     # Historical Documentation
+    ├── status-updates/          # Progress updates
+    └── setup-guides/            # Old setup guides
 ```
 
 ## Key Design Decisions
@@ -387,15 +472,69 @@ The backend always returns successful verification. To test failures:
 - Audit all crypto operations
 - Follow GDPR/privacy regulations
 
+## Development Workflow
+
+### Working with Smart Contracts
+
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Install dependencies (git submodules)
+git submodule update --init --recursive
+
+# Compile contracts
+forge build
+
+# Run tests
+forge test
+
+# Deploy contracts (local)
+anvil  # Terminal 1
+forge script scripts/deploy-*.ts --rpc-url http://localhost:8545 --broadcast  # Terminal 2
+```
+
+### Working with the Frontend
+
+```bash
+# Install dependencies
+cd ui && npm install
+
+# Start dev server
+npm run start  # http://localhost:4193
+
+# Build for production
+npm run build
+
+# Type check
+npm run typecheck
+```
+
+### Working with the Backend
+
+```bash
+# Install dependencies
+cd backend && npm install
+
+# Start mock server
+npm start  # http://localhost:3001
+
+# Test endpoints
+curl http://localhost:3001/health
+```
+
 ## Contributing
 
-Contributions welcome! Areas for improvement:
-- Real Self Protocol backend integration
-- Proper ZK proof validation
-- Better error handling
-- Comprehensive test suite
-- Mobile-responsive UI
-- Multi-chain support
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Areas for improvement:**
+- Enhanced Self Protocol backend verification
+- Additional ZK circuit optimizations
+- Comprehensive integration tests
+- Mobile-responsive UI improvements
+- Multi-chain deployment support
+- Gas optimization for contracts
 
 ## License
 
