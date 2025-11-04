@@ -4,20 +4,25 @@
   "description": "",
   "source": "src/index.html",
   "scripts": {
-    "build": "./node_modules/.bin/vite build",
-    "start": "./node_modules/.bin/vite --strictPort --port 4193",
+    "build": "./node_modules/.bin/vite build --mode demo",
+    "start": "./node_modules/.bin/vite --mode demo --strictPort --port 4193",
     "fmt": "prettier --write '{,!(node_modules)/**/}*.tsx' --config .prettierrc"
   },
   "keywords": [],
   "author": "",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@noble/hashes": "1.5.0",
     "prettier": "3.6.2",
     "vite": "7.0.6"
   },
   "dependencies": {
+    "@selfxyz/core": "^1.0.8",
+    "@selfxyz/qrcode": "^1.0.11",
     "bermuda-bay-sdk": "./lib/sdk",
     "ethers": "6.15.0",
+    "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },

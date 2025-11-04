@@ -1,0 +1,29 @@
+{
+  "name": "@baanx/ppoi-demo-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PPOI Demo Backend - Mock verification server with WebSocket support for Self Protocol integration testing",
+  "main": "mock-server.js",
+  "author": "Baanx",
+  "license": "MIT",
+  "keywords": [
+    "ppoi",
+    "self-protocol",
+    "identity-verification",
+    "zero-knowledge",
+    "websocket",
+    "compliance"
+  ],
+  "scripts": {
+    "start": "node mock-server.js",
+    "dev": "node --watch mock-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "ws": "^8.18.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

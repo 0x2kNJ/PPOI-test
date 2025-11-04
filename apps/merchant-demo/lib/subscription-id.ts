@@ -87,3 +87,9 @@ export function verifyEncryptedSubscriptionId(
   return decrypted.toLowerCase() === encryptedSubId.toLowerCase();
 }
 
+
+
+
+
+
+

@@ -54,3 +54,9 @@ export function generateSubscriptionNullifier(
   return generateNullifier(leafCommitment, paymentIndex, secret);
 }
 
+
+
+
+
+
+

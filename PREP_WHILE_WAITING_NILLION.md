@@ -358,3 +358,9 @@ curl -X POST http://localhost:3000/api/nillion/attest \
 
 **Status**: Ready to proceed with contract updates and UI integration! 🚀
 
+
+
+
+
+
+

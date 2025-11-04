@@ -317,3 +317,9 @@ await db.merchantBalances.increment({
 
 **The infrastructure is already there - just needs to be activated!** 🎉
 
+
+
+
+
+
+

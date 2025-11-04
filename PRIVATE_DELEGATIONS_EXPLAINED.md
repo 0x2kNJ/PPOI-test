@@ -358,3 +358,9 @@ User → Policy (Nillion TEE) → Agent → Smart Contract → Payment
 **For Developers**: See `PRIVACY_FLOW_ANALYSIS.md` for technical details.  
 **For Users**: Your agent can now operate with complete privacy! 🎉
 
+
+
+
+
+
+

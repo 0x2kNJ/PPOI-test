@@ -129,3 +129,9 @@ If you want MAXIMUM privacy, use `merchantCommitment`:
 **TL;DR:** The server sees ONLY what's needed for this specific payment.  
 Your overall financial privacy remains protected by ZK proofs! 🔒
 
+
+
+
+
+
+

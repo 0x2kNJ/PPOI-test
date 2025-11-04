@@ -170,3 +170,9 @@ Subscribe → Agent signs → Subscription created
 
 **Status**: UI complete! Now need to wire up subscription flow to use agent wallet when enabled.
 
+
+
+
+
+
+

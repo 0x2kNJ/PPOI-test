@@ -126,3 +126,9 @@ Payment 3: Agent 0xGHI → Netflix $10 (noteId: 0x789...)
 
 For technical details, see `PRIVATE_DELEGATIONS_EXPLAINED.md`
 
+
+
+
+
+
+

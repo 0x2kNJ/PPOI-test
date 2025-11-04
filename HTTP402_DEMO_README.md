@@ -342,3 +342,9 @@ MIT
 - **OpenWeather API:** https://openweathermap.org/api/one-call-3
 - **EIP-712:** https://eips.ethereum.org/EIPS/eip-712
 
+
+
+
+
+
+

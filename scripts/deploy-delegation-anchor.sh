@@ -56,3 +56,9 @@ echo "2. Update X402Adapter to include DelegationAnchor in constructor"
 echo "3. Deploy updated X402Adapter with delegationAnchor address"
 echo ""
 
+
+
+
+
+
+

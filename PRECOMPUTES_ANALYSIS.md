@@ -301,3 +301,9 @@ async function pay(amount: bigint) {
 **The person who said we don't need precomputes is CORRECT** ✅  
 **But precomputes still help UX** ⚡
 
+
+
+
+
+
+

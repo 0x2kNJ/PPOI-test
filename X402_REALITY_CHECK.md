@@ -38,3 +38,9 @@ The name "x402" combines:
 
 This repo contains a **custom implementation** of pull payments, not an official standard.
 
+
+
+
+
+
+

@@ -261,3 +261,9 @@ curl -X POST "http://localhost:3000/api/weather/hamburg" \
 
 This is the **HTTP 402 Payment Required pattern** you described! 🎉
 
+
+
+
+
+
+

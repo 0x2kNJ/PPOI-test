@@ -280,3 +280,9 @@ app.post('/api/weather/:city', async (req, res) => {
 
 Wenn du HTTP 402 Pattern willst, müsstest du einen Server bauen, der Payment Proofs verifiziert. Aber das ist ein **anderes Pattern** als ERC-402! 🎯
 
+
+
+
+
+
+
