@@ -21,6 +21,7 @@
     "@selfxyz/qrcode": "^1.0.11",
     "bermuda-bay-sdk": "./lib/sdk",
     "ethers": "6.15.0",
+    "poseidon2-compression-ts": "github:BermudaBay/poseidon2-compression-ts#e221193392679e705158491ba05812216812da2e",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "19.1.1",
