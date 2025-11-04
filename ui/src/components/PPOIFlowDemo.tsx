@@ -569,13 +569,13 @@ export default function PPOIFlowDemo() {
     try {
       let complianceResult: BlockaidComplianceCheck
 
-      // REAL Blockaid API Call
-      if (!blockaidService) {
-        throw new Error('Blockaid API key not configured. Set VITE_BLOCKAID_API_KEY in .env.demo')
-      }
-
       if (!TEST_ADDRESS) {
         throw new Error('No address to verify')
+      }
+
+      // REAL Blockaid API Call - REQUIRED
+      if (!blockaidService) {
+        throw new Error('Blockaid API key required. Set VITE_BLOCKAID_API_KEY in .env.demo or disable Blockaid verification.')
       }
 
       updateStatus('verifying_blockaid', 'Verifying with Blockaid...', 'Scanning address with Blockaid API...')
