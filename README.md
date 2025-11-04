@@ -78,6 +78,54 @@ This branch (`self-protocol-demo`) represents a **production-ready transformatio
           └─────────────────────┘
 ```
 
+## 🔐 Compliance Integrations
+
+This demo integrates two complementary compliance verification systems:
+
+### Self Protocol - Identity Verification
+[Self Protocol (self.xyz)](https://self.xyz) provides privacy-preserving identity verification using zero-knowledge proofs generated from government-issued IDs.
+
+**What it does:**
+- ✅ Verifies **humanity** - Proves the user is a real person (not a bot)
+- ✅ Verifies **age** - Proves age threshold (e.g., 18+, 21+) without revealing exact age
+- ✅ Verifies **nationality** - Proves citizenship without revealing passport details
+- ✅ **Privacy-preserving** - Uses zk-SNARKs; no personal data leaves your phone
+
+**How it works:**
+1. User scans QR code on desktop with Self Protocol mobile app
+2. App reads NFC chip from passport/ID and generates zero-knowledge proof
+3. Proof sent to backend; frontend receives real-time WebSocket notification
+4. Proof attached to PPOI note in UTXO commitment
+
+**SDKs Used:**
+- `@selfxyz/core` - Backend verification SDK
+- `@selfxyz/qrcode` - QR code generation for mobile handoff
+
+### Blockaid - Address Screening
+[Blockaid](https://www.blockaid.io/) provides real-time blockchain security and compliance screening for wallet addresses.
+
+**What it does:**
+- 🛡️ Checks against **OFAC sanctions lists** and global watchlists
+- 🛡️ Detects **malicious addresses** (phishing, scams, hacks)
+- 🛡️ Provides **risk scoring** (LOW/MEDIUM/HIGH)
+- 🛡️ Screens for **AML violations** and suspicious activity
+
+**How it works:**
+1. User provides wallet address
+2. System queries Blockaid API with address and chain
+3. Returns compliance status and risk assessment
+4. Results attached to PPOI note in UTXO commitment
+
+**API Used:**
+- Blockaid REST API (`/v0/scan/ethereum/address`)
+
+### Why Both?
+
+**Blockaid** screens the *address* (on-chain history, sanctions)  
+**Self Protocol** verifies the *person* (identity, humanity, attributes)
+
+Together, they provide **comprehensive compliance coverage** for privacy-preserving financial applications.
+
 ## 📚 Quick Links
 
 - **[View on GitHub](https://github.com/0x2kNJ/PPOI-test/tree/self-protocol-demo)** - Source code and issues
