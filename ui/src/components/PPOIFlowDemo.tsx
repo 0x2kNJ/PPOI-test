@@ -1041,48 +1041,6 @@ export default function PPOIFlowDemo() {
         Create private deposits with compliance verification and zero-knowledge proofs
       </p>
 
-      {/* Status Card - Only show for errors or before Blockaid verification */}
-      {(status.error || (!isStepComplete('blockaid_verified') && !isStepComplete('self_verified'))) && (
-        <div style={{
-          background: '#f8f9fa',
-          border: '1px solid #e0e0e0',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: status.error ? '#ff4444' : isStepComplete('ppoi_verified') ? '#00cc66' : '#0066ff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '1.2rem'
-            }}>
-              {status.error ? '✕' : isStepComplete('ppoi_verified') ? '✓' : '⟳'}
-            </div>
-            <div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1a1a1a' }}>
-                {status.message}
-              </div>
-              {status.details && (
-                <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem' }}>
-                  {status.details}
-                </div>
-              )}
-              {status.error && (
-                <div style={{ fontSize: '0.9rem', color: '#ff4444', marginTop: '0.25rem' }}>
-                  {status.error}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Compliance Options */}
       <div style={{
@@ -2099,26 +2057,41 @@ export default function PPOIFlowDemo() {
                   </div>
                 </div>
               </div>
-              {isStepComplete('deposit_created') && 
-               (!enableBlockaid || isStepComplete('blockaid_verified')) &&
-               (!enableSelf || isStepComplete('self_verified')) &&
-               !isStepComplete('ppoi_verified') && (
-                <button
-                  onClick={handleAttachPPOINote}
-                  disabled={isProcessing && status.step === 'verifying_ppoi'}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#9c27b0',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: isProcessing && status.step === 'verifying_ppoi' ? 'not-allowed' : 'pointer',
-                    opacity: isProcessing && status.step === 'verifying_ppoi' ? 0.6 : 1
-                  }}
-                >
-                  {isProcessing && status.step === 'verifying_ppoi' ? 'Attaching...' : 'Attach Note'}
-                </button>
-              )}
+              {/* Show button if: deposit created AND (no blockaid OR blockaid done) AND (no self OR self done) AND note not attached */}
+              {(() => {
+                const canAttach = isStepComplete('deposit_created') && 
+                                 (!enableBlockaid || (complianceData !== null)) &&
+                                 (!enableSelf || (selfComplianceData !== null)) &&
+                                 !isStepComplete('ppoi_verified')
+                
+                console.log('[Step 3c] Button visibility:', {
+                  depositCreated: isStepComplete('deposit_created'),
+                  enableBlockaid,
+                  hasBlockaidData: complianceData !== null,
+                  enableSelf,
+                  hasSelfData: selfComplianceData !== null,
+                  ppoiNotYetAttached: !isStepComplete('ppoi_verified'),
+                  canAttach
+                })
+                
+                return canAttach ? (
+                  <button
+                    onClick={handleAttachPPOINote}
+                    disabled={isProcessing && status.step === 'verifying_ppoi'}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#9c27b0',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: isProcessing && status.step === 'verifying_ppoi' ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing && status.step === 'verifying_ppoi' ? 0.6 : 1
+                    }}
+                  >
+                    {isProcessing && status.step === 'verifying_ppoi' ? 'Attaching...' : 'Attach Note'}
+                  </button>
+                ) : null
+              })()}
             </div>
             {depositData?.ppoiNoteAttached && (
               <div style={{
