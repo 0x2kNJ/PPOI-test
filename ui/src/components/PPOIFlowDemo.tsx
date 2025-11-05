@@ -297,7 +297,6 @@ export default function PPOIFlowDemo() {
   // Toggle switches for optional verification methods
   const [enableBlockaid, setEnableBlockaid] = useState(true)
   const [enableSelf, setEnableSelf] = useState(false) // Optional by default
-  const [selfVerificationType, setSelfVerificationType] = useState<'humanity' | 'age' | 'nationality' | 'full'>('humanity')
   
   // Blockaid configuration - 8 parameters
   const [blockaidConfig, setBlockaidConfig] = useState({
@@ -791,7 +790,7 @@ export default function PPOIFlowDemo() {
     // Create compliance check from backend response
     const complianceCheck: SelfComplianceCheck = {
       passed: data.status === 'success' && data.result === true,
-      verificationType: data.verificationType || selfVerificationType,
+      verificationType: data.verificationType || selfConfig,
       checks: data.checks || [],
       recommendations: data.recommendations || [],
       timestamp: Date.now()
@@ -1127,30 +1126,10 @@ export default function PPOIFlowDemo() {
             </div>
             <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>
               {selfService 
-                ? 'Humanity proof, age verification, nationality checks (ZK proofs)'
+                ? 'Humanity proof, age verification, nationality checks (ZK proofs) • Configure in Advanced Configuration below'
                 : 'Install @selfxyz/core to enable: npm install @selfxyz/core'
               }
             </div>
-            {enableSelf && (
-              <select
-                value={selfVerificationType}
-                onChange={(e) => setSelfVerificationType(e.target.value as any)}
-                disabled={isStepComplete('deposit_created')}
-                style={{
-                  padding: '0.4rem 0.6rem',
-                  fontSize: '0.85rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  background: 'white',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="humanity">Humanity (Sybil Resistance)</option>
-                <option value="age">Age Verification (18+)</option>
-                <option value="nationality">Nationality (Geographic Compliance)</option>
-                <option value="full">Full Verification (All Checks)</option>
-              </select>
-            )}
           </div>
           <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px', cursor: selfService ? 'pointer' : 'not-allowed', marginLeft: '1rem' }}>
             <input
@@ -1950,7 +1929,7 @@ export default function PPOIFlowDemo() {
                   <div style={{ fontSize: '0.9rem', color: '#666' }}>
                     {isStepComplete('self_verified')
                       ? `✅ Identity verified - Type: ${selfComplianceData?.verificationType}`
-                      : `Verify identity (${selfVerificationType}) using government-issued ID`}
+                      : `Verify identity (${selfConfig}) using government-issued ID`}
                   </div>
                 </div>
               </div>
