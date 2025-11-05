@@ -618,10 +618,14 @@ export default function PPOIFlowDemo() {
       newRiskLevel = 'LOW' as const
     }
 
+    // STRICT POOL ELIGIBILITY: Only fully clean addresses go to main pool
+    // Any FAIL or WARNING = quarantine pool
+    const isFullyClean = failCount === 0 && warningCount === 0
+
     return {
       ...result,
       checks: filteredChecks,
-      passed: !hasCriticalFailures && newRiskScore < 60,
+      passed: isFullyClean,  // Only PASS statuses (no warnings, no failures)
       riskScore: newRiskScore,
       riskLevel: newRiskLevel
     }
@@ -658,20 +662,30 @@ export default function PPOIFlowDemo() {
       setComplianceData(complianceResult)
       
       // IMPORTANT: We ALWAYS attach Blockaid results to the PPOI note, even if checks fail
-      // Failed checks = Funds go to QUARANTINE POOL (isolated, can't mingle with compliant funds)
-      // Passed checks = Funds go to MAIN POOL (can be mixed with other compliant deposits)
+      // Failed checks OR Warnings = Funds go to QUARANTINE POOL (isolated, can't mingle with compliant funds)
+      // Only fully clean (no warnings, no failures) = Funds go to MAIN POOL
+      
+      const failCount = complianceResult.checks.filter(c => c.status === 'FAIL').length
+      const warningCount = complianceResult.checks.filter(c => c.status === 'WARNING').length
+      const passCount = complianceResult.checks.filter(c => c.status === 'PASS').length
       
       if (!complianceResult.passed) {
+        const issuesSummary = [
+          failCount > 0 ? `${failCount} FAILED` : null,
+          warningCount > 0 ? `${warningCount} WARNING` : null,
+          passCount > 0 ? `${passCount} passed` : null
+        ].filter(Boolean).join(', ')
+        
         updateStatus(
           'blockaid_verified',
           '⚠️ Blockaid Verification Complete (Non-Compliant)',
-          `${complianceResult.checks.filter(c => c.status === 'FAIL').length} check(s) FAILED • Risk Level: ${complianceResult.riskLevel}`,
+          `${issuesSummary} • Risk Level: ${complianceResult.riskLevel}`,
           `⚠️ QUARANTINE POOL: Funds will be segregated and cannot be mingled with compliant deposits`
         )
       } else {
         updateStatus(
           'blockaid_verified',
-          '✅ Blockaid Verification Passed',
+          '✅ Blockaid Verification Passed (Fully Clean)',
           `${complianceResult.checks.length} compliance checks passed • Risk Level: ${complianceResult.riskLevel}`,
           `✅ MAIN POOL: Funds can be deposited and mixed with other compliant funds`
         )
