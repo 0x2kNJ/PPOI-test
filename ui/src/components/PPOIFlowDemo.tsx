@@ -2181,23 +2181,34 @@ export default function PPOIFlowDemo() {
                 </div>
               </div>
             </div>
-            {isStepComplete('ppoi_verified') && !isStepComplete('proof_generated') && (
-              <button
-                onClick={handleGenerateProof}
-                disabled={isProcessing && status.step === 'generating_proof'}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#2196f3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: isProcessing && status.step === 'generating_proof' ? 'not-allowed' : 'pointer',
-                  opacity: isProcessing && status.step === 'generating_proof' ? 0.6 : 1
-                }}
-              >
-                {isProcessing && status.step === 'generating_proof' ? 'Generating...' : 'Generate Proof'}
-              </button>
-            )}
+            {/* Show button if: PPOI note attached AND proof not yet generated */}
+            {(() => {
+              const canGenerateProof = depositData?.ppoiNoteAttached === true && !isStepComplete('proof_generated')
+              
+              console.log('[Step 4] Button visibility:', {
+                ppoiNoteAttached: depositData?.ppoiNoteAttached,
+                proofNotGenerated: !isStepComplete('proof_generated'),
+                canGenerateProof
+              })
+              
+              return canGenerateProof ? (
+                <button
+                  onClick={handleGenerateProof}
+                  disabled={isProcessing && status.step === 'generating_proof'}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#2196f3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: isProcessing && status.step === 'generating_proof' ? 'not-allowed' : 'pointer',
+                    opacity: isProcessing && status.step === 'generating_proof' ? 0.6 : 1
+                  }}
+                >
+                  {isProcessing && status.step === 'generating_proof' ? 'Generating...' : 'Generate Proof'}
+                </button>
+              ) : null
+            })()}
           </div>
           {proofData && (
             <div style={{
@@ -2218,23 +2229,32 @@ export default function PPOIFlowDemo() {
       </div>
 
       {/* Submit Transaction Button */}
-      {isStepComplete('ppoi_verified') && !isStepComplete('tx_submitted') && (
-        <div style={{
-          background: '#fff3e0',
-          border: '2px solid #ff9800',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#e65100' }}>
-            Ready to Submit to Privacy Pool
-          </div>
-          <div style={{ color: '#666', marginBottom: '1rem' }}>
-            Your proof is verified and ready. Click below to submit the transaction on-chain.
-          </div>
-          <button
-            onClick={handleSubmitTransaction}
-            disabled={isProcessing && status.step === 'submitting_tx'}
+      {(() => {
+        const canSubmit = proofData !== null && !isStepComplete('tx_submitted')
+        
+        console.log('[Step 5] Button visibility:', {
+          hasProofData: proofData !== null,
+          notSubmitted: !isStepComplete('tx_submitted'),
+          canSubmit
+        })
+        
+        return canSubmit ? (
+          <div style={{
+            background: '#fff3e0',
+            border: '2px solid #ff9800',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '2rem'
+          }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#e65100' }}>
+              Ready to Submit to Privacy Pool
+            </div>
+            <div style={{ color: '#666', marginBottom: '1rem' }}>
+              Your proof is verified and ready. Click below to submit the transaction on-chain.
+            </div>
+            <button
+              onClick={handleSubmitTransaction}
+              disabled={isProcessing && status.step === 'submitting_tx'}
             style={{
               padding: '1rem 2rem',
               background: '#ff9800',
@@ -2251,7 +2271,8 @@ export default function PPOIFlowDemo() {
             {isProcessing && status.step === 'submitting_tx' ? '⏳ Submitting Transaction...' : '🚀 Submit to Privacy Pool'}
           </button>
         </div>
-      )}
+        ) : null
+      })()}
 
       {/* Transaction Status */}
       {txData && (
