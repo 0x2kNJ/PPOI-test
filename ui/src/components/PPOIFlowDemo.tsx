@@ -657,21 +657,25 @@ export default function PPOIFlowDemo() {
       
       setComplianceData(complianceResult)
       
+      // IMPORTANT: We ALWAYS attach Blockaid results to the PPOI note, even if checks fail
+      // Failed checks = Funds go to QUARANTINE POOL (isolated, can't mingle with compliant funds)
+      // Passed checks = Funds go to MAIN POOL (can be mixed with other compliant deposits)
+      
       if (!complianceResult.passed) {
         updateStatus(
-          'error',
-          '❌ Blockaid Verification Failed',
-          `Address failed compliance: ${complianceResult.checks.filter(c => c.status === 'FAIL').map(c => c.name).join(', ')}`,
-          `Risk Level: ${complianceResult.riskLevel} (Score: ${complianceResult.riskScore}/100)`
+          'blockaid_verified',
+          '⚠️ Blockaid Verification Complete (Non-Compliant)',
+          `${complianceResult.checks.filter(c => c.status === 'FAIL').length} check(s) FAILED • Risk Level: ${complianceResult.riskLevel}`,
+          `⚠️ QUARANTINE POOL: Funds will be segregated and cannot be mingled with compliant deposits`
         )
-        return
+      } else {
+        updateStatus(
+          'blockaid_verified',
+          '✅ Blockaid Verification Passed',
+          `${complianceResult.checks.length} compliance checks passed • Risk Level: ${complianceResult.riskLevel}`,
+          `✅ MAIN POOL: Funds can be deposited and mixed with other compliant funds`
+        )
       }
-
-      updateStatus(
-        'blockaid_verified',
-        '✅ Blockaid Verification Passed',
-        `${complianceResult.checks.length} compliance checks passed • Risk Level: ${complianceResult.riskLevel}`,
-      )
     } catch (error: any) {
       updateStatus('error', 'Blockaid verification failed', error.message)
     } finally {
@@ -830,19 +834,27 @@ export default function PPOIFlowDemo() {
       const ppoiData: any = {
         timestamp: Date.now(),
         address: TEST_ADDRESS,
-        verifications: []
+        verifications: [],
+        poolEligibility: 'main' // Default to main pool
       }
 
-      // Add Blockaid data if enabled
+      // Determine pool eligibility based on Blockaid results
+      // CRITICAL: Failed compliance checks = QUARANTINE POOL (funds isolated)
+      //           Passed compliance checks = MAIN POOL (funds can be mixed)
       if (enableBlockaid && complianceData) {
+        const blockaidPassed = complianceData.passed
+        ppoiData.poolEligibility = blockaidPassed ? 'main' : 'quarantine'
+        
         ppoiData.verifications.push({
           type: 'blockaid',
+          passed: blockaidPassed,
           riskScore: complianceData.riskScore,
           riskLevel: complianceData.riskLevel,
           checks: complianceData.checks.map(c => ({
             name: c.name,
             status: c.status
-          }))
+          })),
+          poolEligibility: blockaidPassed ? 'main' : 'quarantine'
         })
       }
 
@@ -895,10 +907,16 @@ export default function PPOIFlowDemo() {
         enableSelf && selfComplianceData ? 'Self Protocol' : null
       ].filter(Boolean).join(' + ')
 
+      // Determine pool eligibility message
+      const poolStatus = ppoiData.poolEligibility === 'main'
+        ? '✅ MAIN POOL: Funds can be deposited and mixed with compliant funds'
+        : '⚠️ QUARANTINE POOL: Funds segregated due to failed compliance checks'
+
       updateStatus(
         'ppoi_verified',
         '✅ PPOI Note Attached',
-        `${verificationCount} total checks passed (${verificationTypes}) • PPOI note encoded into UTXO • Commitment regenerated with composite data`,
+        `${verificationCount} total checks (${verificationTypes}) • PPOI note encoded into UTXO`,
+        poolStatus
       )
     } catch (error: any) {
       updateStatus('error', 'PPOI note attachment failed', error.message)
@@ -2055,17 +2073,39 @@ export default function PPOIFlowDemo() {
                 borderRadius: '6px',
                 fontSize: '0.9rem',
                 marginTop: '0.5rem',
-                border: '1px solid #4caf50'
+                border: `2px solid ${complianceData?.passed ? '#4caf50' : '#ff9800'}`
               }}>
                 <div style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>
                   ✅ Composite PPOI Note Attached
                 </div>
+                
+                {/* Pool Eligibility Status - CRITICAL */}
+                <div style={{ 
+                  marginBottom: '0.75rem', 
+                  padding: '0.75rem', 
+                  borderRadius: '6px',
+                  background: complianceData?.passed ? '#e8f5e9' : '#fff3e0',
+                  border: `2px solid ${complianceData?.passed ? '#4caf50' : '#ff9800'}`
+                }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '0.25rem' }}>
+                    {complianceData?.passed ? '✅ MAIN POOL' : '⚠️ QUARANTINE POOL'}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                    {complianceData?.passed 
+                      ? 'Funds can be deposited and mixed with other compliant deposits'
+                      : 'Funds will be segregated and cannot be mingled with compliant deposits due to failed compliance checks'}
+                  </div>
+                </div>
+                
                 <div style={{ marginBottom: '0.5rem' }}>
                   <strong>Verifications Included:</strong>
                 </div>
                 <ul style={{ marginLeft: '1.5rem', marginBottom: '0.5rem' }}>
                   {enableBlockaid && complianceData && (
-                    <li>🛡️ Blockaid: {complianceData.checks.length} checks ({complianceData.riskLevel})</li>
+                    <li>
+                      🛡️ Blockaid: {complianceData.checks.length} checks 
+                      {complianceData.passed ? ' (✅ PASSED)' : ' (❌ FAILED)'} • Risk: {complianceData.riskLevel}
+                    </li>
                   )}
                   {enableSelf && selfComplianceData && (
                     <li>🆔 Self Protocol: {selfComplianceData.checks.length} checks ({selfComplianceData.verificationType})</li>
