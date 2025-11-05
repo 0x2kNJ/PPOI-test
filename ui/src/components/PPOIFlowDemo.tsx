@@ -298,6 +298,26 @@ export default function PPOIFlowDemo() {
   const [enableBlockaid, setEnableBlockaid] = useState(true)
   const [enableSelf, setEnableSelf] = useState(false) // Optional by default
   const [selfVerificationType, setSelfVerificationType] = useState<'humanity' | 'age' | 'nationality' | 'full'>('humanity')
+  
+  // Blockaid configuration - 8 parameters
+  const [blockaidConfig, setBlockaidConfig] = useState({
+    checkOFAC: true,              // 1. OFAC Sanctions Check
+    checkMalicious: true,         // 2. Malicious Activity Check
+    checkTokenSafety: true,       // 3. Token Safety Check
+    checkPhishing: true,          // 4. Phishing/Scam Check
+    checkTrustLevel: true,        // 5. Trust Level Check
+    checkContractVerification: true, // 6. Contract Verification Check
+    checkAddressAge: true,        // 7. Address Age Check
+    addressAgeThresholdMonths: 1, // 7a. Age threshold (1-12 months)
+    checkVerificationStatus: true // 8. Verification Status
+  })
+  
+  // Self Protocol configuration - detailed options
+  const [selfConfig, setSelfConfig] = useState({
+    checkHumanity: true,          // Proof of humanity
+    checkAge: false,              // Age verification
+    checkNationality: false       // Nationality verification
+  })
 
   const updateStatus = (step: FlowStep, message: string, details?: string, error?: string) => {
     setStatus({ step, message, details, error })
@@ -556,6 +576,61 @@ export default function PPOIFlowDemo() {
     }
   }
 
+  // Filter Blockaid checks based on configuration
+  const filterBlockaidChecks = (result: BlockaidComplianceCheck): BlockaidComplianceCheck => {
+    const filteredChecks = result.checks.filter(check => {
+      if (check.name === 'OFAC Sanctions Check' && !blockaidConfig.checkOFAC) return false
+      if (check.name === 'Malicious Activity Check' && !blockaidConfig.checkMalicious) return false
+      if (check.name === 'Token Safety Check' && !blockaidConfig.checkTokenSafety) return false
+      if (check.name === 'Phishing/Scam Check' && !blockaidConfig.checkPhishing) return false
+      if (check.name === 'Trust Level Check' && !blockaidConfig.checkTrustLevel) return false
+      if (check.name === 'Contract Verification Check' && !blockaidConfig.checkContractVerification) return false
+      if (check.name === 'Address Age Check' && !blockaidConfig.checkAddressAge) return false
+      if (check.name === 'Verification Status' && !blockaidConfig.checkVerificationStatus) return false
+      return true
+    })
+
+    // Recalculate pass/fail based on filtered checks
+    const hasCriticalFailures = filteredChecks.some(c => 
+      c.status === 'FAIL' && (
+        c.name === 'OFAC Sanctions Check' || 
+        c.name === 'Malicious Activity Check' ||
+        c.name === 'Token Safety Check'
+      )
+    )
+
+    // Recalculate risk score
+    const failCount = filteredChecks.filter(c => c.status === 'FAIL').length
+    const warningCount = filteredChecks.filter(c => c.status === 'WARNING').length
+    let newRiskScore = result.riskScore
+    let newRiskLevel = result.riskLevel
+
+    if (hasCriticalFailures) {
+      newRiskScore = 100
+      newRiskLevel = 'CRITICAL' as const
+    } else if (failCount > 0) {
+      newRiskScore = 80
+      newRiskLevel = 'HIGH' as const
+    } else if (warningCount > 1) {
+      newRiskScore = 50
+      newRiskLevel = 'MEDIUM' as const
+    } else if (warningCount > 0) {
+      newRiskScore = 20
+      newRiskLevel = 'LOW' as const
+    } else {
+      newRiskScore = 0
+      newRiskLevel = 'LOW' as const
+    }
+
+    return {
+      ...result,
+      checks: filteredChecks,
+      passed: !hasCriticalFailures && newRiskScore < 60,
+      riskScore: newRiskScore,
+      riskLevel: newRiskLevel
+    }
+  }
+
   // Step 3a: Verify with Blockaid (optional)
   const handleVerifyBlockaid = async () => {
     if (!depositData) {
@@ -579,7 +654,10 @@ export default function PPOIFlowDemo() {
       }
 
       updateStatus('verifying_blockaid', 'Verifying with Blockaid...', 'Scanning address with Blockaid API...')
-      complianceResult = await blockaidService.checkCompliance(TEST_ADDRESS, 'ethereum')
+      const rawResult = await blockaidService.checkCompliance(TEST_ADDRESS, 'ethereum')
+      
+      // Filter checks based on configuration
+      complianceResult = filterBlockaidChecks(rawResult)
       
       setComplianceData(complianceResult)
       
@@ -630,28 +708,35 @@ export default function PPOIFlowDemo() {
 
       updateStatus('verifying_self', 'Verifying with Self Protocol...', 'Initiating identity verification...')
       
-      // Generate verification request
-      let request: any
-      switch (selfVerificationType) {
-        case 'humanity':
-          request = { requestedAttributes: ['humanity'] }
-          break
-        case 'age':
-          request = { requestedAttributes: ['age'], constraints: { minAge: 18 } }
-          break
-        case 'nationality':
-          request = { requestedAttributes: ['nationality'], constraints: { excludedNationalities: ['KP', 'IR', 'SY'] } }
-          break
-        case 'full':
-          request = {
-            requestedAttributes: ['humanity', 'age', 'nationality'],
-            constraints: {
-              minAge: 18,
-              excludedNationalities: ['KP', 'IR', 'SY']
-            }
-          }
-          break
+      // Build verification request based on configuration
+      const requestedAttributes: string[] = []
+      const constraints: any = {}
+
+      if (selfConfig.checkHumanity) {
+        requestedAttributes.push('humanity')
       }
+      if (selfConfig.checkAge) {
+        requestedAttributes.push('age')
+        constraints.minAge = 18 // Default minimum age
+      }
+      if (selfConfig.checkNationality) {
+        requestedAttributes.push('nationality')
+        constraints.excludedNationalities = ['KP', 'IR', 'SY'] // OFAC sanctioned countries
+      }
+
+      // Ensure at least one verification type is selected
+      if (requestedAttributes.length === 0) {
+        updateStatus('error', 'No verification types selected', 'Please enable at least one Self Protocol verification option')
+        setIsProcessing(false)
+        return
+      }
+
+      const request = {
+        requestedAttributes,
+        ...(Object.keys(constraints).length > 0 ? { constraints } : {})
+      }
+
+      console.log('[Self Protocol] 🔐 Verification request:', request)
 
       // Request verification - will generate QR code on desktop
       const result = await selfService.requestVerification(request)
@@ -1132,6 +1217,504 @@ export default function PPOIFlowDemo() {
           </div>
         )}
       </div>
+
+      {/* Advanced Configuration Panel */}
+      {(enableBlockaid || enableSelf) && (
+        <div style={{ 
+          marginBottom: '2rem',
+          padding: '1.5rem',
+          background: '#f8f9fa',
+          border: '1px solid #dee2e6',
+          borderRadius: '8px'
+        }}>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', color: '#1a1a1a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            ⚙️ Advanced Configuration
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: '#6c757d', marginBottom: '1.5rem' }}>
+            Configure specific compliance checks and verification parameters
+          </p>
+
+          {/* Blockaid Configuration */}
+          {enableBlockaid && (
+            <div style={{
+              background: 'white',
+              padding: '1.25rem',
+              borderRadius: '8px',
+              marginBottom: enableSelf ? '1.5rem' : '0',
+              border: '1px solid #e9ecef'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#dc3545', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🛡️ Blockaid Parameters (8 Checks)
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                {/* Check 1: OFAC Sanctions */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    1. OFAC Sanctions
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkOFAC}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkOFAC: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkOFAC ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkOFAC ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 2: Malicious Activity */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    2. Malicious Activity
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkMalicious}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkMalicious: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkMalicious ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkMalicious ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 3: Token Safety */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    3. Token Safety
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkTokenSafety}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkTokenSafety: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkTokenSafety ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkTokenSafety ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 4: Phishing/Scam */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    4. Phishing/Scam
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkPhishing}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkPhishing: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkPhishing ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkPhishing ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 5: Trust Level */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    5. Trust Level
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkTrustLevel}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkTrustLevel: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkTrustLevel ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkTrustLevel ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 6: Contract Verification */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    6. Contract Verification
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkContractVerification}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkContractVerification: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkContractVerification ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkContractVerification ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 7: Address Age */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    7. Address Age
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkAddressAge}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkAddressAge: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkAddressAge ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkAddressAge ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Check 8: Verification Status */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer' }}>
+                    8. Verification Status
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={blockaidConfig.checkVerificationStatus}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, checkVerificationStatus: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: blockaidConfig.checkVerificationStatus ? '#28a745' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: blockaidConfig.checkVerificationStatus ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Address Age Threshold Slider */}
+              {blockaidConfig.checkAddressAge && (
+                <div style={{ marginTop: '1.25rem', padding: '1rem', background: '#e3f2fd', borderRadius: '6px', border: '1px solid #2196f3' }}>
+                  <label style={{ fontSize: '0.95rem', color: '#1976d2', fontWeight: '600', display: 'block', marginBottom: '0.75rem' }}>
+                    🗓️ Minimum Address Age Threshold: {blockaidConfig.addressAgeThresholdMonths} month{blockaidConfig.addressAgeThresholdMonths !== 1 ? 's' : ''}
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#1565c0' }}>1</span>
+                    <input
+                      type="range"
+                      min="1"
+                      max="12"
+                      value={blockaidConfig.addressAgeThresholdMonths}
+                      onChange={(e) => setBlockaidConfig({ ...blockaidConfig, addressAgeThresholdMonths: parseInt(e.target.value) })}
+                      style={{ 
+                        flex: 1, 
+                        height: '6px', 
+                        borderRadius: '3px',
+                        background: `linear-gradient(to right, #2196f3 0%, #2196f3 ${((blockaidConfig.addressAgeThresholdMonths - 1) / 11) * 100}%, #e0e0e0 ${((blockaidConfig.addressAgeThresholdMonths - 1) / 11) * 100}%, #e0e0e0 100%)`,
+                        outline: 'none',
+                        WebkitAppearance: 'none'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.8rem', color: '#1565c0' }}>12</span>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: '#0277bd', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                    Addresses younger than this will be flagged as WARNING
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Self Protocol Configuration */}
+          {enableSelf && (
+            <div style={{
+              background: 'white',
+              padding: '1.25rem',
+              borderRadius: '8px',
+              border: '1px solid #e9ecef'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🔐 Self Protocol Verification Options
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                {/* Humanity Verification */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>👤</span> Humanity Proof
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={selfConfig.checkHumanity}
+                      onChange={(e) => setSelfConfig({ ...selfConfig, checkHumanity: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: selfConfig.checkHumanity ? '#7c3aed' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: selfConfig.checkHumanity ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Age Verification */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>📅</span> Age Verification
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={selfConfig.checkAge}
+                      onChange={(e) => setSelfConfig({ ...selfConfig, checkAge: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: selfConfig.checkAge ? '#7c3aed' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: selfConfig.checkAge ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* Nationality Verification */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>🌍</span> Nationality Check
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                    <input
+                      type="checkbox"
+                      checked={selfConfig.checkNationality}
+                      onChange={(e) => setSelfConfig({ ...selfConfig, checkNationality: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: selfConfig.checkNationality ? '#7c3aed' : '#ccc',
+                      transition: '0.4s',
+                      borderRadius: '24px'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        content: '""',
+                        height: '18px',
+                        width: '18px',
+                        left: selfConfig.checkNationality ? '23px' : '3px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: '0.4s',
+                        borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Flow Steps */}
       <div style={{ marginBottom: '2rem' }}>
