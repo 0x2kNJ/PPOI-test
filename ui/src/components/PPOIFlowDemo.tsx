@@ -2226,10 +2226,20 @@ export default function PPOIFlowDemo() {
             marginBottom: '2rem'
           }}>
             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#e65100' }}>
-              Ready to Submit to Privacy Pool
+              Ready to Submit to {complianceData?.passed ? 'Privacy Pool' : 'Quarantine Pool'}
             </div>
             <div style={{ color: '#666', marginBottom: '1rem' }}>
               Your proof is verified and ready. Click below to submit the transaction on-chain.
+              {!complianceData?.passed && (
+                <div style={{ 
+                  color: '#e65100', 
+                  fontWeight: 'bold',
+                  marginTop: '0.5rem',
+                  fontSize: '0.9rem'
+                }}>
+                  ⚠️ Funds will be segregated and can only be withdrawn to the original deposit address
+                </div>
+              )}
             </div>
             <button
               onClick={handleSubmitTransaction}
@@ -2247,7 +2257,11 @@ export default function PPOIFlowDemo() {
               opacity: isProcessing && status.step === 'submitting_tx' ? 0.6 : 1
             }}
           >
-            {isProcessing && status.step === 'submitting_tx' ? '⏳ Submitting Transaction...' : '🚀 Submit to Privacy Pool'}
+            {isProcessing && status.step === 'submitting_tx' 
+              ? '⏳ Submitting Transaction...' 
+              : complianceData?.passed 
+                ? '🚀 Submit to Privacy Pool'
+                : '⚠️ Submit to Quarantine Pool'}
           </button>
         </div>
         ) : null
@@ -2284,20 +2298,43 @@ export default function PPOIFlowDemo() {
       {/* Final Status */}
       {isStepComplete('tx_submitted') && (
         <div style={{
-          background: '#e8f5e9',
-          border: '2px solid #4caf50',
+          background: complianceData?.passed ? '#e8f5e9' : '#fff3e0',
+          border: `2px solid ${complianceData?.passed ? '#4caf50' : '#ff9800'}`,
           borderRadius: '12px',
           padding: '2rem',
           textAlign: 'center',
           marginBottom: '2rem'
         }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✅</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2e7d32', marginBottom: '0.5rem' }}>
-            Deposit Complete & Submitted to Privacy Pool
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+            {complianceData?.passed ? '✅' : '⚠️'}
           </div>
-          <div style={{ color: '#666' }}>
+          <div style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 'bold', 
+            color: complianceData?.passed ? '#2e7d32' : '#e65100', 
+            marginBottom: '0.5rem' 
+          }}>
+            {complianceData?.passed 
+              ? 'Deposit Complete & Submitted to Privacy Pool'
+              : 'Deposit Complete & Submitted to Quarantine Pool'}
+          </div>
+          <div style={{ color: '#666', marginBottom: '0.75rem' }}>
             Your deposit has been created, ZK proof generated, PPOI verified, and transaction submitted on-chain!
           </div>
+          {!complianceData?.passed && (
+            <div style={{ 
+              color: '#e65100', 
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              marginTop: '1rem',
+              padding: '1rem',
+              background: '#ffe0b2',
+              borderRadius: '8px',
+              border: '2px solid #ff9800'
+            }}>
+              ⚠️ Funds are segregated and can only be withdrawn to the original deposit address
+            </div>
+          )}
         </div>
       )}
 
