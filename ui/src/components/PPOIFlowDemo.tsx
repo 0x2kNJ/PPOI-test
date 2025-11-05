@@ -1888,8 +1888,46 @@ export default function PPOIFlowDemo() {
                 borderRadius: '6px',
                 fontSize: '0.9rem',
                 marginTop: '0.5rem',
-                border: `1px solid ${complianceData.passed ? '#4caf50' : '#ff4444'}`
+                border: `2px solid ${complianceData.passed ? '#4caf50' : '#ff9800'}`
               }}>
+                {/* Pool Eligibility Status - Prominent Display */}
+                <div style={{ 
+                  marginBottom: '1rem', 
+                  padding: '1rem', 
+                  borderRadius: '6px',
+                  background: complianceData.passed ? '#e8f5e9' : '#fff3e0',
+                  border: `2px solid ${complianceData.passed ? '#4caf50' : '#ff9800'}`
+                }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.5rem' }}>
+                    {complianceData.passed ? '✅ Blockaid Verification Passed (Fully Clean)' : '⚠️ Blockaid Verification Complete (Non-Compliant)'}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                    {(() => {
+                      const failCount = complianceData.checks.filter(c => c.status === 'FAIL').length
+                      const warningCount = complianceData.checks.filter(c => c.status === 'WARNING').length
+                      const passCount = complianceData.checks.filter(c => c.status === 'PASS').length
+                      const issues = [
+                        failCount > 0 ? `${failCount} FAILED` : null,
+                        warningCount > 0 ? `${warningCount} WARNING` : null,
+                        passCount > 0 ? `${passCount} passed` : null
+                      ].filter(Boolean).join(', ')
+                      return `${issues} • Risk Level: ${complianceData.riskLevel}`
+                    })()}
+                  </div>
+                  <div style={{ 
+                    fontWeight: 'bold', 
+                    fontSize: '0.95rem', 
+                    marginTop: '0.75rem',
+                    padding: '0.5rem',
+                    borderRadius: '4px',
+                    background: complianceData.passed ? '#c8e6c9' : '#ffe0b2'
+                  }}>
+                    {complianceData.passed 
+                      ? '✅ MAIN POOL: Funds can be deposited and mixed with other compliant funds'
+                      : '⚠️ QUARANTINE POOL: Funds will be segregated and cannot be mingled with compliant deposits'}
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '0.75rem', fontWeight: 'bold', fontSize: '1rem' }}>
                   Blockaid Compliance Report {blockaidService ? '🔴 LIVE API' : '⚪ DEMO MODE'}
                 </div>
