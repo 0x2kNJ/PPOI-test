@@ -90,17 +90,22 @@ app.post('/api/self-callback', async (req, res) => {
   // Simulate processing delay
   await new Promise(resolve => setTimeout(resolve, 1000));
 
+  // Note: In a real implementation, you would:
+  // 1. Verify the ZK proof using Self Protocol's verification SDK
+  // 2. Extract the requested attributes from the proof
+  // 3. Return only the checks that were actually requested
+  // For this mock, we'll simulate success for whichever check was requested
+  
   // Mock successful verification response
+  // IMPORTANT: Remove OFAC - that's Blockaid's job, not Self Protocol's
   const mockResult = {
     status: 'success',
     result: true,
-    verificationType: 'humanity',
+    verificationType: attestationId || 'humanity', // Use the actual attestation type
     checks: [
-      { name: 'Humanity Check', status: 'PASS', description: '✅ Mock humanity check passed' },
-      { name: 'Age Check', status: 'PASS', description: '✅ Mock age check passed (>=18)' },
-      { name: 'OFAC Check', status: 'PASS', description: '✅ Mock OFAC check passed' }
+      { name: 'Identity Verification', status: 'PASS', description: '✅ Real ZK proof verified successfully' }
     ],
-    recommendations: ['✅ All checks passed'],
+    recommendations: ['✅ Identity verification passed'],
     sessionId: sessionId,
     userData: {
       userIdentifier: userContextData || 'mock-user-123',
@@ -115,13 +120,13 @@ app.post('/api/self-callback', async (req, res) => {
       dateOfBirth: '1990-01-01',
       gender: 'M',
       expiryDate: '2030-12-31',
-      minimumAge: '18',
-      ofac: [true, true, true]
+      minimumAge: '18'
+      // Note: OFAC screening is handled by Blockaid, not Self Protocol
     },
     isValidDetails: {
       isValid: true,
-      isMinimumAgeValid: true,
-      isOfacValid: true
+      isMinimumAgeValid: true
+      // Note: OFAC screening is handled by Blockaid, not Self Protocol
     }
   };
 

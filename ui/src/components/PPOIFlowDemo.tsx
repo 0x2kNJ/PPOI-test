@@ -312,12 +312,8 @@ export default function PPOIFlowDemo() {
     checkVerificationStatus: true // 8. Verification Status
   })
   
-  // Self Protocol configuration - detailed options
-  const [selfConfig, setSelfConfig] = useState({
-    checkHumanity: true,          // Proof of humanity
-    checkAge: false,              // Age verification
-    checkNationality: false       // Nationality verification
-  })
+  // Self Protocol configuration - single selection only (mobile app limitation)
+  const [selfConfig, setSelfConfig] = useState<'humanity' | 'age' | 'nationality'>('humanity')
 
   const updateStatus = (step: FlowStep, message: string, details?: string, error?: string) => {
     setStatus({ step, message, details, error })
@@ -708,27 +704,22 @@ export default function PPOIFlowDemo() {
 
       updateStatus('verifying_self', 'Verifying with Self Protocol...', 'Initiating identity verification...')
       
-      // Build verification request based on configuration
+      // Build verification request based on single selected option
       const requestedAttributes: string[] = []
       const constraints: any = {}
 
-      if (selfConfig.checkHumanity) {
-        requestedAttributes.push('humanity')
-      }
-      if (selfConfig.checkAge) {
-        requestedAttributes.push('age')
-        constraints.minAge = 18 // Default minimum age
-      }
-      if (selfConfig.checkNationality) {
-        requestedAttributes.push('nationality')
-        constraints.excludedNationalities = ['KP', 'IR', 'SY'] // OFAC sanctioned countries
-      }
-
-      // Ensure at least one verification type is selected
-      if (requestedAttributes.length === 0) {
-        updateStatus('error', 'No verification types selected', 'Please enable at least one Self Protocol verification option')
-        setIsProcessing(false)
-        return
+      switch (selfConfig) {
+        case 'humanity':
+          requestedAttributes.push('humanity')
+          break
+        case 'age':
+          requestedAttributes.push('age')
+          constraints.minAge = 18 // Default minimum age
+          break
+        case 'nationality':
+          requestedAttributes.push('nationality')
+          constraints.excludedNationalities = ['KP', 'IR', 'SY'] // OFAC sanctioned countries
+          break
       }
 
       const request = {
@@ -736,7 +727,7 @@ export default function PPOIFlowDemo() {
         ...(Object.keys(constraints).length > 0 ? { constraints } : {})
       }
 
-      console.log('[Self Protocol] 🔐 Verification request:', request)
+      console.log('[Self Protocol] 🔐 Verification request (single selection):', request)
 
       // Request verification - will generate QR code on desktop
       const result = await selfService.requestVerification(request)
@@ -1593,123 +1584,84 @@ export default function PPOIFlowDemo() {
               borderRadius: '8px',
               border: '1px solid #e9ecef'
             }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🔐 Self Protocol Verification Options
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🔐 Self Protocol Verification Option
               </h3>
+              <p style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '1rem', fontStyle: 'italic' }}>
+                ⚠️ Select ONE verification type only (mobile app limitation)
+              </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                 {/* Humanity Verification */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
-                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '0.75rem', 
+                  background: selfConfig === 'humanity' ? '#f3e8ff' : '#f8f9fa', 
+                  borderRadius: '6px',
+                  border: selfConfig === 'humanity' ? '2px solid #7c3aed' : '2px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="radio"
+                    name="selfVerification"
+                    value="humanity"
+                    checked={selfConfig === 'humanity'}
+                    onChange={(e) => setSelfConfig(e.target.value as 'humanity' | 'age' | 'nationality')}
+                    style={{ marginRight: '0.75rem', width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.9rem', color: '#495057', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span>👤</span> Humanity Proof
-                  </label>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                    <input
-                      type="checkbox"
-                      checked={selfConfig.checkHumanity}
-                      onChange={(e) => setSelfConfig({ ...selfConfig, checkHumanity: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: selfConfig.checkHumanity ? '#7c3aed' : '#ccc',
-                      transition: '0.4s',
-                      borderRadius: '24px'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '18px',
-                        width: '18px',
-                        left: selfConfig.checkHumanity ? '23px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        transition: '0.4s',
-                        borderRadius: '50%'
-                      }} />
-                    </span>
-                  </label>
-                </div>
+                  </span>
+                </label>
 
                 {/* Age Verification */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
-                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>📅</span> Age Verification
-                  </label>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                    <input
-                      type="checkbox"
-                      checked={selfConfig.checkAge}
-                      onChange={(e) => setSelfConfig({ ...selfConfig, checkAge: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: selfConfig.checkAge ? '#7c3aed' : '#ccc',
-                      transition: '0.4s',
-                      borderRadius: '24px'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '18px',
-                        width: '18px',
-                        left: selfConfig.checkAge ? '23px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        transition: '0.4s',
-                        borderRadius: '50%'
-                      }} />
-                    </span>
-                  </label>
-                </div>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '0.75rem', 
+                  background: selfConfig === 'age' ? '#f3e8ff' : '#f8f9fa', 
+                  borderRadius: '6px',
+                  border: selfConfig === 'age' ? '2px solid #7c3aed' : '2px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="radio"
+                    name="selfVerification"
+                    value="age"
+                    checked={selfConfig === 'age'}
+                    onChange={(e) => setSelfConfig(e.target.value as 'humanity' | 'age' | 'nationality')}
+                    style={{ marginRight: '0.75rem', width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.9rem', color: '#495057', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>📅</span> Age Verification (18+)
+                  </span>
+                </label>
 
                 {/* Nationality Verification */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px' }}>
-                  <label style={{ fontSize: '0.9rem', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '0.75rem', 
+                  background: selfConfig === 'nationality' ? '#f3e8ff' : '#f8f9fa', 
+                  borderRadius: '6px',
+                  border: selfConfig === 'nationality' ? '2px solid #7c3aed' : '2px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}>
+                  <input
+                    type="radio"
+                    name="selfVerification"
+                    value="nationality"
+                    checked={selfConfig === 'nationality'}
+                    onChange={(e) => setSelfConfig(e.target.value as 'humanity' | 'age' | 'nationality')}
+                    style={{ marginRight: '0.75rem', width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.9rem', color: '#495057', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span>🌍</span> Nationality Check
-                  </label>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                    <input
-                      type="checkbox"
-                      checked={selfConfig.checkNationality}
-                      onChange={(e) => setSelfConfig({ ...selfConfig, checkNationality: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: selfConfig.checkNationality ? '#7c3aed' : '#ccc',
-                      transition: '0.4s',
-                      borderRadius: '24px'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '18px',
-                        width: '18px',
-                        left: selfConfig.checkNationality ? '23px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        transition: '0.4s',
-                        borderRadius: '50%'
-                      }} />
-                    </span>
-                  </label>
-                </div>
+                  </span>
+                </label>
               </div>
             </div>
           )}
