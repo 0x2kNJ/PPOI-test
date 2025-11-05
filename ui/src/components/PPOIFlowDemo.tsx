@@ -1041,46 +1041,48 @@ export default function PPOIFlowDemo() {
         Create private deposits with compliance verification and zero-knowledge proofs
       </p>
 
-      {/* Status Card */}
-      <div style={{
-        background: '#f8f9fa',
-        border: '1px solid #e0e0e0',
-        borderRadius: '12px',
-        padding: '1.5rem',
-        marginBottom: '2rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            background: status.error ? '#ff4444' : isStepComplete('ppoi_verified') ? '#00cc66' : '#0066ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1.2rem'
-          }}>
-            {status.error ? '✕' : isStepComplete('ppoi_verified') ? '✓' : '⟳'}
-          </div>
-          <div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1a1a1a' }}>
-              {status.message}
+      {/* Status Card - Only show for errors or before Blockaid verification */}
+      {(status.error || (!isStepComplete('blockaid_verified') && !isStepComplete('self_verified'))) && (
+        <div style={{
+          background: '#f8f9fa',
+          border: '1px solid #e0e0e0',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: status.error ? '#ff4444' : isStepComplete('ppoi_verified') ? '#00cc66' : '#0066ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '1.2rem'
+            }}>
+              {status.error ? '✕' : isStepComplete('ppoi_verified') ? '✓' : '⟳'}
             </div>
-            {status.details && (
-              <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem' }}>
-                {status.details}
+            <div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1a1a1a' }}>
+                {status.message}
               </div>
-            )}
-            {status.error && (
-              <div style={{ fontSize: '0.9rem', color: '#ff4444', marginTop: '0.25rem' }}>
-                {status.error}
-              </div>
-            )}
+              {status.details && (
+                <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem' }}>
+                  {status.details}
+                </div>
+              )}
+              {status.error && (
+                <div style={{ fontSize: '0.9rem', color: '#ff4444', marginTop: '0.25rem' }}>
+                  {status.error}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Compliance Options */}
       <div style={{
